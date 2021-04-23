@@ -1,4 +1,4 @@
-package it.nextworks.sol006_tmf_translator.sol006_tmf_translator.commons;
+package it.nextworks.sol006_tmf_translator.sol006_tmf_translator.commons.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
