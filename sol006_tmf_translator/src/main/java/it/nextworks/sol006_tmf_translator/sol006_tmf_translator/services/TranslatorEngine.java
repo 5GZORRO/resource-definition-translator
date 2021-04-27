@@ -11,6 +11,7 @@ import it.nextworks.sol006_tmf_translator.information_models.resource.*;
 import it.nextworks.sol006_tmf_translator.information_models.sol006.*;
 import it.nextworks.sol006_tmf_translator.sol006_tmf_translator.commons.config.CustomOffsetDateTimeSerializer;
 import it.nextworks.sol006_tmf_translator.sol006_tmf_translator.commons.exception.CatalogPostException;
+import org.apache.http.HttpEntity;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.StringEntity;
@@ -27,7 +28,9 @@ import org.threeten.bp.OffsetDateTime;
 import org.threeten.bp.ZoneId;
 
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 @Service
@@ -56,7 +59,38 @@ public class TranslatorEngine {
         this.objectMapper.registerModule(module);
     }
 
-    public Pair<ResourceCandidateCreate, ResourceSpecificationCreate> translateVNFD(Vnfd vnfd)
+    private HttpEntity post(String body, String requestPath) throws UnsupportedEncodingException, CatalogPostException {
+
+        String request = protocol + catalogHostname + ":" + catalogPort + contextPath + requestPath;
+        CloseableHttpClient httpClient = HttpClients.createDefault();
+        HttpPost httpPost = new HttpPost(request);
+
+        StringEntity stringEntity = new StringEntity(body);
+
+        httpPost.setEntity(stringEntity);
+        httpPost.setHeader("Accept", "application/json");
+        httpPost.setHeader("Content-type", "application/json");
+
+        CloseableHttpResponse response;
+        try {
+            response = httpClient.execute(httpPost);
+        } catch(IOException e) {
+            String msg = "Offer Catalog Unreachable";
+            log.error(msg);
+            throw new CatalogPostException(msg);
+        }
+
+        int statusCode = response.getStatusLine().getStatusCode();
+        if(statusCode != 201) {
+            String msg = "Offer Catalog POST request failed, status code: " + statusCode;
+            log.error(msg);
+            throw new CatalogPostException(msg);
+        }
+
+        return response.getEntity();
+    }
+
+    public Pair<ResourceCandidate, ResourceSpecification> translateVNFD(Vnfd vnfd)
             throws IOException, CatalogPostException {
 
         log.info("Received request to translate vnfd.");
@@ -873,36 +907,9 @@ public class TranslatorEngine {
 
         rsc.setResourceSpecCharacteristic(resourceSpecCharacteristics);
 
-        String request = protocol + catalogHostname + ":" + catalogPort + contextPath +
-                "/resourceCatalogManagement/v2/resourceSpecification";
-        CloseableHttpClient httpClient = HttpClients.createDefault();
-        HttpPost httpPostRs = new HttpPost(request);
-
         String rscJson = objectMapper.writeValueAsString(rsc);
-        log.info(rscJson);
-        StringEntity stringEntityRsc = new StringEntity(rscJson);
-
-        httpPostRs.setEntity(stringEntityRsc);
-        httpPostRs.setHeader("Accept", "application/json");
-        httpPostRs.setHeader("Content-type", "application/json");
-
-        CloseableHttpResponse response;
-        try {
-            response = httpClient.execute(httpPostRs);
-        } catch(IOException e) {
-            String msg = "Offer Catalog Unreachable";
-            log.error(msg);
-            throw new CatalogPostException(msg);
-        }
-
-        int statusCode = response.getStatusLine().getStatusCode();
-        if(statusCode != 201) {
-            String msg = "Offer Catalog POST request (ResourceSpecification) failed, status code: " + statusCode;
-            log.error(msg);
-            throw new CatalogPostException(msg);
-        }
-
-        ResourceSpecification rs = objectMapper.readValue(EntityUtils.toString(response.getEntity()), ResourceSpecification.class);
+        HttpEntity httpEntity = post(rscJson, "/resourceCatalogManagement/v2/resourceSpecification");
+        ResourceSpecification rs = objectMapper.readValue(EntityUtils.toString(httpEntity), ResourceSpecification.class);
 
         String vnfdId = vnfd.getId();
         ResourceCandidateCreate rcc = new ResourceCandidateCreate()
@@ -913,34 +920,394 @@ public class TranslatorEngine {
                         .href(rs.getHref())
                         .name("vnfd specification: " + vnfdId));
 
-        request = protocol + catalogHostname + ":" + catalogPort + contextPath +
-                "/resourceCatalogManagement/v2/resourceCandidate";
-        HttpPost httpPostRc = new HttpPost(request);
-
         String rccJson = objectMapper.writeValueAsString(rcc);
-        StringEntity stringEntityRcc = new StringEntity(rccJson);
-
-        httpPostRc.setEntity(stringEntityRcc);
-        httpPostRc.setHeader("Accept", "application/json");
-        httpPostRc.setHeader("Content-type", "application/json");
-
-        try {
-            response = httpClient.execute(httpPostRc);
-        } catch(IOException e) {
-            String msg = "Offer Catalog Unreachable";
-            log.error(msg);
-            throw new CatalogPostException(msg);
-        }
-
-        statusCode = response.getStatusLine().getStatusCode();
-        if(statusCode != 201) {
-            String msg = "Offer Catalog POST request (ResourceCandidate) failed, status code: " + statusCode;
-            log.error(msg);
-            throw new CatalogPostException(msg);
-        }
+        httpEntity = post(rccJson, "/resourceCatalogManagement/v2/resourceCandidate");
+        ResourceCandidate rc = objectMapper.readValue(EntityUtils.toString(httpEntity), ResourceCandidate.class);
 
         log.info("vnfd successfully translated and posted ");
 
-        return new Pair<>(rcc, rsc);
+        return new Pair<>(rc, rs);
+    }
+
+    public Pair<ResourceCandidate, ResourceSpecification> translatePNFD(Pnfd pnfd) throws IOException, CatalogPostException {
+
+        log.info("Received request to translate pnfd.");
+
+        String pnfdName = pnfd.getName();
+        String pnfdVersion = pnfd.getVersion();
+        ResourceSpecificationCreate rsc = new ResourceSpecificationCreate()
+                .description(pnfdName + " version " + pnfdVersion + " by " + pnfd.getProvider() +
+                        "; " + pnfd.getFunctionDescription())
+                .name(pnfdName)
+                .version(pnfdVersion)
+                .lastUpdate(OffsetDateTime.ofInstant(Instant.now(), ZoneId.of("UTC")));
+
+        List<ResourceSpecCharacteristic> resourceSpecCharacteristics = new ArrayList<>();
+
+        List<Cpd> extCpds = pnfd.getExtCpd();
+        if(extCpds == null)
+            log.debug("null ext-cpd list, skipping characteristics.");
+        else {
+            for(Cpd extCpd : extCpds) {
+
+                String extCpdId = extCpd.getId();
+                if(extCpdId == null) {
+                    log.debug("null ext-cpd item id, skipping characteristic.");
+                    continue;
+                }
+
+                ResourceSpecCharacteristic rscPnfdExtCpd = new ResourceSpecCharacteristic()
+                        .configurable(true)
+                        .description("ext-cpd " + extCpdId + ": " + extCpd.getDescription())
+                        .extensible(true)
+                        .isUnique(true)
+                        .name(extCpdId);
+
+                List<ResourceSpecCharacteristicValue> rscv = new ArrayList<>();
+
+                List<String> layerProtocol = extCpd.getLayerProtocol();
+                if(layerProtocol == null)
+                    log.debug("null layer-protocol list, skipping value.");
+                else {
+                    ResourceSpecCharacteristicValue lpRscv = new ResourceSpecCharacteristicValue()
+                            .value(new Any().alias("layer-protocol")
+                                    .value(layerProtocol.toString()))
+                            .valueType("List<String>");
+                    rscv.add(lpRscv);
+                }
+
+                List<CpdProtocol> protocols = extCpd.getProtocol();
+                if(protocols == null)
+                    log.debug("null ext-cpd protocol list, skipping values.");
+                else {
+                    int i = 0;
+                    for(CpdProtocol cpdProtocol : protocols) {
+
+                        String value = "";
+
+                        List<CpdAddressdata> cpdAddressdata = cpdProtocol.getAddressData();
+                        if(cpdAddressdata == null)
+                            log.debug("null ext-cpd protocol address-data list, not inserted in value field.");
+                        else {
+                            List<String> valueLst = new ArrayList<>();
+
+                            for(CpdAddressdata cpdAddressdatum : cpdAddressdata) {
+                                String valueAddressData = "";
+
+                                CpdL2addressdata cpdL2addressdata = cpdAddressdatum.getL2AddressData();
+                                if(cpdL2addressdata == null)
+                                    log.debug("null ext-cpd protocol address-data item l2-address-data, " +
+                                            "not inserted in value field.");
+                                else {
+                                    Boolean isMacAddressAssignment = cpdL2addressdata.isMacAddressAssignment();
+                                    if(isMacAddressAssignment == null)
+                                        log.debug("null ext-cpd protocol address-data item l2-address-data " +
+                                                "mac-address-assignment, not inserted in value field.");
+                                    else
+                                        valueAddressData = "l2-address-data -> mac-address-assignment: " +
+                                                        isMacAddressAssignment;
+                                }
+
+                                CpdL3addressdata cpdL3addressdata = cpdAddressdatum.getL3AddressData();
+                                if(cpdL3addressdata == null)
+                                    log.debug("null ext-cpd protocol address-data item l3-address-data, " +
+                                            "not inserted in value field");
+                                else {
+                                    Boolean ipAddressAssignment = cpdL3addressdata.isIpAddressAssignment();
+                                    if(ipAddressAssignment == null)
+                                        log.debug("null ext-cpd protocol address-data item l3-address-data" +
+                                                "ip-address-assignment, not inserted in value field.");
+                                    else {
+                                        if(!valueAddressData.isEmpty())
+                                            valueAddressData = valueAddressData + ", ";
+
+                                        valueAddressData =
+                                                valueAddressData + "l3-address-data -> " + "ip-address-assignment: " +
+                                                        ipAddressAssignment;
+                                    }
+
+                                    Boolean floatingIpActivated = cpdL3addressdata.isFloatingIpActivated();
+                                    if(floatingIpActivated == null)
+                                        log.debug("null ext-cpd protocol address-data item l3-address-data" +
+                                                "floating-ip-activated, not inserted in value field.");
+                                    else {
+                                        if(!valueAddressData.isEmpty())
+                                            valueAddressData = valueAddressData + ", ";
+
+                                        valueAddressData =
+                                                valueAddressData + "l3-address-data -> floating-ip-activated: " +
+                                                        floatingIpActivated;
+                                    }
+
+                                    String numberOfIpAddresses = cpdL3addressdata.getNumberOfIpAddresses();
+                                    if(numberOfIpAddresses == null)
+                                        log.debug("null ext-cpd protocol address-data item l3-address-data" +
+                                                "number-of-ip-addresses, not inserted in value field.");
+                                    else {
+                                        if(!valueAddressData.isEmpty())
+                                            valueAddressData = valueAddressData + ", ";
+
+                                        valueAddressData =
+                                                valueAddressData + "l3-address-data -> number-of-ip-addresses: " +
+                                                        numberOfIpAddresses;
+                                    }
+                                }
+
+                                String type = cpdAddressdatum.getType();
+                                if(type == null)
+                                    log.debug("null ext-cpd protocol address-data item type, " +
+                                            "not inserted in value field.");
+                                else {
+                                    if(!valueAddressData.isEmpty())
+                                        valueAddressData = valueAddressData + ", ";
+
+                                    valueAddressData = valueAddressData + "type: " + type;
+                                }
+
+                                valueLst.add("(" + valueAddressData + ")");
+                            }
+
+                            if(!valueLst.isEmpty())
+                                value = "address-data: " + valueLst.toString();
+                        }
+
+                        String associatedLayerProtocol = cpdProtocol.getAssociatedLayerProtocol();
+                        if(associatedLayerProtocol == null)
+                            log.debug("null ext-cpd protocol associated-layer-protocol, not inserted in value field.");
+                        else {
+                            if(!value.isEmpty())
+                                value = value + ", ";
+
+                            value = value + "associated-layer-protocol: " + associatedLayerProtocol;
+                        }
+
+                        ResourceSpecCharacteristicValue pRscv = new ResourceSpecCharacteristicValue()
+                                .value(new Any().alias("protocol" + i)
+                                        .value(value))
+                                .valueType("CpdProtocol");
+                        rscv.add(pRscv);
+                        i++;
+                    }
+                }
+
+                String role = extCpd.getRole();
+                if(role == null)
+                    log.debug("null role, skipping value.");
+                else {
+                    ResourceSpecCharacteristicValue rRscv = new ResourceSpecCharacteristicValue()
+                            .value(new Any().alias("role")
+                                    .value(role))
+                            .valueType("String");
+                    rscv.add(rRscv);
+                }
+
+                Boolean isTrunkMode = extCpd.isTrunkMode();
+                if(isTrunkMode == null)
+                    log.debug("null trunk-mode, skipping value.");
+                else {
+                    ResourceSpecCharacteristicValue itmRscv = new ResourceSpecCharacteristicValue()
+                            .value(new Any().alias("trunk-mode")
+                                    .value(isTrunkMode.toString()))
+                            .valueType("Boolean");
+                    rscv.add(itmRscv);
+                }
+
+                rscPnfdExtCpd.setResourceSpecCharacteristicValue(rscv);
+
+                resourceSpecCharacteristics.add(rscPnfdExtCpd);
+            }
+        }
+
+        String geographicalLocationInfo = pnfd.getGeographicalLocationInfo();
+        if(geographicalLocationInfo == null)
+            log.debug("null geographical-location-info, skipping characteristic");
+        else {
+            ResourceSpecCharacteristic rscGli = new ResourceSpecCharacteristic()
+                    .configurable(false)
+                    .description("geographical-location-info")
+                    .extensible(false)
+                    .isUnique(true)
+                    .name("geographical-location-info")
+                    .resourceSpecCharacteristicValue(Collections.singletonList(new ResourceSpecCharacteristicValue()
+                            .value(new Any().value(geographicalLocationInfo)).valueType("String")));
+            resourceSpecCharacteristics.add(rscGli);
+        }
+
+        String invariantId = pnfd.getInvariantId();
+        if(invariantId == null)
+            log.debug("null invariant-id, skipping characteristic.");
+        else {
+            ResourceSpecCharacteristic rscIi = new ResourceSpecCharacteristic()
+                    .configurable(false)
+                    .description("invariant-id")
+                    .extensible(false)
+                    .isUnique(true)
+                    .name("invariant-id")
+                    .resourceSpecCharacteristicValue(Collections.singletonList(new ResourceSpecCharacteristicValue()
+                    .value(new Any().value(invariantId)).valueType("String")));
+            resourceSpecCharacteristics.add(rscIi);
+        }
+
+        List<SecurityParameters> securityParameters = pnfd.getSecurity();
+        if(securityParameters == null)
+            log.debug("null security list, skipping characteristics.");
+        else {
+            int i = 0;
+            for(SecurityParameters securityParameter : securityParameters) {
+                ResourceSpecCharacteristic rscSp = new ResourceSpecCharacteristic()
+                        .configurable(true)
+                        .description("security" + i)
+                        .extensible(true)
+                        .isUnique(true)
+                        .name("security" + i);
+
+                List<ResourceSpecCharacteristicValue> rscv = new ArrayList<>();
+
+                String certificate = securityParameter.getCertificate();
+                if(certificate == null)
+                    log.debug("null certificate, skipping value.");
+                else {
+                    ResourceSpecCharacteristicValue cRscv = new ResourceSpecCharacteristicValue()
+                            .value(new Any().alias("certificate")
+                                    .value(certificate))
+                            .valueType("String");
+                    rscv.add(cRscv);
+                }
+
+                String algorithm = securityParameter.getAlgorithm();
+                if(algorithm == null)
+                    log.debug("null algorithm, skipping value.");
+                else {
+                    ResourceSpecCharacteristicValue aRscv = new ResourceSpecCharacteristicValue()
+                            .value(new Any().alias("algorithm")
+                                    .value(algorithm))
+                            .valueType("String");
+                    rscv.add(aRscv);
+                }
+
+                String signature = securityParameter.getSignature();
+                if(signature == null)
+                    log.debug("null signature, skipping value.");
+                else {
+                    ResourceSpecCharacteristicValue sRscv = new ResourceSpecCharacteristicValue()
+                            .value(new Any().alias("signature")
+                                    .value(signature))
+                            .valueType("String");
+                    rscv.add(sRscv);
+                }
+
+                rscSp.setResourceSpecCharacteristicValue(rscv);
+
+                resourceSpecCharacteristics.add(rscSp);
+
+                i++;
+            }
+        }
+
+        List<SecuritygroupruleSecuritygrouprule> securityGroupRules = pnfd.getSecurityGroupRule();
+        if(securityGroupRules == null)
+            log.debug("null security-group-rule list, skipping characteristics.");
+        else {
+            for(SecuritygroupruleSecuritygrouprule securityGroupRule : securityGroupRules) {
+
+                String securityGroupRuleId = securityGroupRule.getId();
+                if(securityGroupRuleId == null) {
+                    log.debug("null security-group-rule item id, skipping characteristic.");
+                    continue;
+                }
+
+                ResourceSpecCharacteristic rscSgr = new ResourceSpecCharacteristic()
+                        .configurable(true)
+                        .description("security-group-rule " + securityGroupRuleId + ": " +
+                                securityGroupRule.getDescription())
+                        .extensible(true)
+                        .isUnique(true)
+                        .name(securityGroupRuleId);
+
+                List<ResourceSpecCharacteristicValue> rscv = new ArrayList<>();
+
+                SecuritygroupruleSecuritygrouprule.DirectionEnum direction = securityGroupRule.getDirection();
+                if(direction == null)
+                    log.debug("null direction, skipping value");
+                else {
+                    ResourceSpecCharacteristicValue dRscv = new ResourceSpecCharacteristicValue()
+                            .value(new Any().alias("direction")
+                                    .value(direction.toString()))
+                            .valueType("SecuritygroupruleSecuritygrouprule.DirectionEnum");
+                    rscv.add(dRscv);
+                }
+
+                SecuritygroupruleSecuritygrouprule.EtherTypeEnum etherType = securityGroupRule.getEtherType();
+                if(etherType == null)
+                    log.debug("null ether-type, skipping value");
+                else {
+                    ResourceSpecCharacteristicValue etRscv = new ResourceSpecCharacteristicValue()
+                            .value(new Any().alias("ether-type")
+                                    .value(etherType.toString()))
+                            .valueType("SecuritygroupruleSecuritygrouprule.EtherTypeEnum");
+                    rscv.add(etRscv);
+                }
+
+                String portRangeMax = securityGroupRule.getPortRangeMax();
+                if(portRangeMax == null)
+                    log.debug("null port-range-max, skipping value");
+                else {
+                    ResourceSpecCharacteristicValue prmRscv = new ResourceSpecCharacteristicValue()
+                            .value(new Any().alias("port-range-max")
+                                    .value(portRangeMax))
+                            .valueType("String");
+                    rscv.add(prmRscv);
+                }
+
+                String portRangeMin = securityGroupRule.getPortRangeMin();
+                if(portRangeMin == null)
+                    log.debug("null port-range-min, skipping value");
+                else {
+                    ResourceSpecCharacteristicValue prmRscv = new ResourceSpecCharacteristicValue()
+                            .value(new Any().alias("port-range-min")
+                                    .value(portRangeMin))
+                            .valueType("String");
+                    rscv.add(prmRscv);
+                }
+
+                SecuritygroupruleSecuritygrouprule.ProtocolEnum protocol = securityGroupRule.getProtocol();
+                if(protocol == null)
+                    log.debug("null protocol, skipping value");
+                else {
+                    ResourceSpecCharacteristicValue pRscv = new ResourceSpecCharacteristicValue()
+                            .value(new Any().alias("protocol")
+                                    .value(protocol.toString()))
+                            .valueType("SecuritygroupruleSecuritygrouprule.ProtocolEnum");
+                    rscv.add(pRscv);
+                }
+
+                rscSgr.setResourceSpecCharacteristicValue(rscv);
+
+                resourceSpecCharacteristics.add(rscSgr);
+            }
+        }
+
+        rsc.setResourceSpecCharacteristic(resourceSpecCharacteristics);
+
+        String rscJson = objectMapper.writeValueAsString(rsc);
+        HttpEntity httpEntity = post(rscJson, "/resourceCatalogManagement/v2/resourceSpecification");
+        ResourceSpecification rs = objectMapper.readValue(EntityUtils.toString(httpEntity), ResourceSpecification.class);
+
+        String pnfdId = pnfd.getId();
+        ResourceCandidateCreate rcc = new ResourceCandidateCreate()
+                .name("pnfd " + pnfdId)
+                .lastUpdate(OffsetDateTime.ofInstant(Instant.now(), ZoneId.of("UTC")))
+                .resourceSpecification(new ResourceSpecificationRef()
+                        .id(rs.getId())
+                        .href(rs.getHref())
+                        .name("pnfd specification: " + pnfdId));
+
+        String rccJson = objectMapper.writeValueAsString(rcc);
+        httpEntity = post(rccJson, "/resourceCatalogManagement/v2/resourceCandidate");
+        ResourceCandidate rc = objectMapper.readValue(EntityUtils.toString(httpEntity), ResourceCandidate.class);
+
+        log.info("pnfd successfully translated and posted.");
+
+        return new Pair<>(rc, rs);
     }
 }
