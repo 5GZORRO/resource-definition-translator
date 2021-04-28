@@ -8,6 +8,8 @@ import it.nextworks.sol006_tmf_translator.information_models.commons.Any;
 import it.nextworks.sol006_tmf_translator.information_models.commons.Pair;
 import it.nextworks.sol006_tmf_translator.information_models.commons.ResourceSpecificationRef;
 import it.nextworks.sol006_tmf_translator.information_models.resource.*;
+import it.nextworks.sol006_tmf_translator.information_models.service.ServiceCandidate;
+import it.nextworks.sol006_tmf_translator.information_models.service.ServiceSpecification;
 import it.nextworks.sol006_tmf_translator.information_models.sol006.*;
 import it.nextworks.sol006_tmf_translator.sol006_tmf_translator.commons.config.CustomOffsetDateTimeSerializer;
 import it.nextworks.sol006_tmf_translator.sol006_tmf_translator.commons.exception.CatalogPostException;
@@ -1309,5 +1311,9 @@ public class TranslatorEngine {
         log.info("pnfd successfully translated and posted.");
 
         return new Pair<>(rc, rs);
+    }
+
+    public Pair<ServiceCandidate, ServiceSpecification> translateNsd(Nsd nsd) {
+        return null;
     }
 }
