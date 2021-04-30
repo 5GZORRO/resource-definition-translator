@@ -9,12 +9,15 @@ import it.nextworks.sol006_tmf_translator.information_models.commons.Pair;
 import it.nextworks.sol006_tmf_translator.information_models.commons.ResourceSpecificationRef;
 import it.nextworks.sol006_tmf_translator.information_models.resource.*;
 import it.nextworks.sol006_tmf_translator.information_models.service.ServiceCandidate;
+import it.nextworks.sol006_tmf_translator.information_models.service.ServiceSpecCharacteristic;
 import it.nextworks.sol006_tmf_translator.information_models.service.ServiceSpecification;
+import it.nextworks.sol006_tmf_translator.information_models.service.ServiceSpecificationCreate;
 import it.nextworks.sol006_tmf_translator.information_models.sol006.*;
 import it.nextworks.sol006_tmf_translator.sol006_tmf_translator.commons.config.CustomOffsetDateTimeSerializer;
-import it.nextworks.sol006_tmf_translator.sol006_tmf_translator.commons.exception.CatalogPostException;
+import it.nextworks.sol006_tmf_translator.sol006_tmf_translator.commons.exception.CatalogException;
 import org.apache.http.HttpEntity;
 import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
@@ -32,6 +35,7 @@ import org.threeten.bp.ZoneId;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
@@ -61,7 +65,7 @@ public class TranslatorEngine {
         this.objectMapper.registerModule(module);
     }
 
-    private HttpEntity post(String body, String requestPath) throws UnsupportedEncodingException, CatalogPostException {
+    private HttpEntity post(String body, String requestPath) throws UnsupportedEncodingException, CatalogException {
 
         String request = protocol + catalogHostname + ":" + catalogPort + contextPath + requestPath;
         CloseableHttpClient httpClient = HttpClients.createDefault();
@@ -77,25 +81,26 @@ public class TranslatorEngine {
         try {
             response = httpClient.execute(httpPost);
         } catch(IOException e) {
-            String msg = "Offer Catalog Unreachable";
+            String msg = "Offer Catalog Unreachable.";
             log.error(msg);
-            throw new CatalogPostException(msg);
+            throw new CatalogException(msg);
         }
 
         int statusCode = response.getStatusLine().getStatusCode();
         if(statusCode != 201) {
-            String msg = "Offer Catalog POST request failed, status code: " + statusCode;
+            String msg = "Offer Catalog POST request failed, status code: " + statusCode + ".";
             log.error(msg);
-            throw new CatalogPostException(msg);
+            throw new CatalogException(msg);
         }
 
         return response.getEntity();
     }
 
     public Pair<ResourceCandidate, ResourceSpecification> translateVNFD(Vnfd vnfd)
-            throws IOException, CatalogPostException {
+            throws IOException, CatalogException {
 
-        log.info("Received request to translate vnfd.");
+        String vnfdId = vnfd.getId();
+        log.info("Translating vnfd " + vnfdId + ".");
 
         String vnfdProductName = vnfd.getProductName();
         ResourceSpecificationCreate rsc = new ResourceSpecificationCreate()
@@ -909,31 +914,34 @@ public class TranslatorEngine {
 
         rsc.setResourceSpecCharacteristic(resourceSpecCharacteristics);
 
+        log.info("Posting Resource Specification to Offer Catalog for vnfd " + vnfdId + ".");
+
         String rscJson = objectMapper.writeValueAsString(rsc);
         HttpEntity httpEntity = post(rscJson, "/resourceCatalogManagement/v2/resourceSpecification");
         ResourceSpecification rs = objectMapper.readValue(EntityUtils.toString(httpEntity), ResourceSpecification.class);
 
-        String vnfdId = vnfd.getId();
         ResourceCandidateCreate rcc = new ResourceCandidateCreate()
-                .name("vnfd " + vnfdId)
+                .name("vnfd:" + vnfdId)
                 .lastUpdate(OffsetDateTime.ofInstant(Instant.now(), ZoneId.of("UTC")))
                 .resourceSpecification(new ResourceSpecificationRef()
                         .id(rs.getId())
                         .href(rs.getHref())
                         .name("vnfd specification: " + vnfdId));
 
+        log.info("Posting Resource Candidate to Offer Catalog for vnfd " + vnfdId + ".");
+
         String rccJson = objectMapper.writeValueAsString(rcc);
         httpEntity = post(rccJson, "/resourceCatalogManagement/v2/resourceCandidate");
         ResourceCandidate rc = objectMapper.readValue(EntityUtils.toString(httpEntity), ResourceCandidate.class);
 
-        log.info("vnfd successfully translated and posted ");
-
         return new Pair<>(rc, rs);
     }
 
-    public Pair<ResourceCandidate, ResourceSpecification> translatePNFD(Pnfd pnfd) throws IOException, CatalogPostException {
+    public Pair<ResourceCandidate, ResourceSpecification> translatePNFD(Pnfd pnfd)
+            throws IOException, CatalogException {
 
-        log.info("Received request to translate pnfd.");
+        String pnfdId = pnfd.getId();
+        log.info("Translating pnfd " + pnfdId + ".");
 
         String pnfdName = pnfd.getName();
         String pnfdVersion = pnfd.getVersion();
@@ -1291,29 +1299,53 @@ public class TranslatorEngine {
 
         rsc.setResourceSpecCharacteristic(resourceSpecCharacteristics);
 
+        log.info("Posting Resource Specification to Offer Catalog for pnfd " + pnfdId + ".");
+
         String rscJson = objectMapper.writeValueAsString(rsc);
         HttpEntity httpEntity = post(rscJson, "/resourceCatalogManagement/v2/resourceSpecification");
         ResourceSpecification rs = objectMapper.readValue(EntityUtils.toString(httpEntity), ResourceSpecification.class);
 
-        String pnfdId = pnfd.getId();
         ResourceCandidateCreate rcc = new ResourceCandidateCreate()
-                .name("pnfd " + pnfdId)
+                .name("pnfd:" + pnfdId)
                 .lastUpdate(OffsetDateTime.ofInstant(Instant.now(), ZoneId.of("UTC")))
                 .resourceSpecification(new ResourceSpecificationRef()
                         .id(rs.getId())
                         .href(rs.getHref())
                         .name("pnfd specification: " + pnfdId));
 
+        log.info("Posting Resource Candidate to Offer Catalog for pnfd " + pnfdId + ".");
+
         String rccJson = objectMapper.writeValueAsString(rcc);
         httpEntity = post(rccJson, "/resourceCatalogManagement/v2/resourceCandidate");
         ResourceCandidate rc = objectMapper.readValue(EntityUtils.toString(httpEntity), ResourceCandidate.class);
-
-        log.info("pnfd successfully translated and posted.");
 
         return new Pair<>(rc, rs);
     }
 
     public Pair<ServiceCandidate, ServiceSpecification> translateNsd(Nsd nsd) {
-        return null;
+
+        String nsdName = nsd.getName();
+        String nsdVersion = nsd.getVersion();
+        ServiceSpecificationCreate ssc = new ServiceSpecificationCreate()
+                .description(nsdName + " version " + nsdVersion + " by " + nsd.getDesigner())
+                .name(nsdName)
+                .version(nsdVersion)
+                .lastUpdate(OffsetDateTime.ofInstant(Instant.now(), ZoneId.of("UTC")));
+
+        List<ServiceSpecCharacteristic> serviceSpecCharacteristics = new ArrayList<>();
+
+        List<String> vnfIds = nsd.getVnfdId();
+        if(vnfIds == null)
+            log.debug("null vnfd-id list, skipping resources.");
+        else {
+            for(String vnfId : vnfIds) {
+
+                String rcName = "vnfd:" + vnfId;
+                //ResourceSpecificationRef rsr = retrieveResource(rcName);
+
+            }
+        }
+
+        return new Pair<>(null, null);
     }
 }

@@ -13,7 +13,7 @@ import it.nextworks.sol006_tmf_translator.information_models.sol006.Nsd;
 import it.nextworks.sol006_tmf_translator.information_models.sol006.Pnfd;
 import it.nextworks.sol006_tmf_translator.information_models.sol006.Vnfd;
 import it.nextworks.sol006_tmf_translator.interfaces.TranslatorInterface;
-import it.nextworks.sol006_tmf_translator.sol006_tmf_translator.commons.exception.CatalogPostException;
+import it.nextworks.sol006_tmf_translator.sol006_tmf_translator.commons.exception.CatalogException;
 import it.nextworks.sol006_tmf_translator.sol006_tmf_translator.services.TranslatorEngine;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -79,7 +79,7 @@ public class TranslatorController implements TranslatorInterface {
         Pair<ResourceCandidate, ResourceSpecification> translatedVnfd;
         try {
             translatedVnfd = translatorEngine.translateVNFD(vnfd);
-        } catch (IOException | CatalogPostException e) {
+        } catch (IOException | CatalogException e) {
             log.error("Web-Server: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new ErrMsg(e.getMessage()));
         }
@@ -121,7 +121,7 @@ public class TranslatorController implements TranslatorInterface {
         Pair<ResourceCandidate, ResourceSpecification> translatedPnfd;
         try {
             translatedPnfd = translatorEngine.translatePNFD(pnfd);
-        } catch (IOException | CatalogPostException e) {
+        } catch (IOException | CatalogException e) {
             log.error("Web-Server: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new ErrMsg(e.getMessage()));
         }
