@@ -15,7 +15,7 @@ public class ResourceMappingInfoService {
 
     private static final Logger log = LoggerFactory.getLogger(ResourceMappingInfoService.class);
 
-    private ResourceMappingInfoRepository resourceMappingInfoRepository;
+    private final ResourceMappingInfoRepository resourceMappingInfoRepository;
 
     @Autowired
     public ResourceMappingInfoService(ResourceMappingInfoRepository resourceMappingInfoRepository) {

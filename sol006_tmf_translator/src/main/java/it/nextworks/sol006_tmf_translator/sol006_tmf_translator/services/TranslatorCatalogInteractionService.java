@@ -100,13 +100,14 @@ public class TranslatorCatalogInteractionService {
             throw new MissingEntityOnCatalogException(msg);
         }
 
-        ResourceCandidate rc = objectMapper.readValue(EntityUtils.toString(rcEntity), ResourceCandidate.class);
+        ResourceCandidate rc = Arrays.asList(objectMapper.readValue(EntityUtils.toString(rcEntity),
+                ResourceCandidate[].class)).get(0);
 
         log.info("Checking if Resource Specification " + resourceSpecificationCatalogId + " exist in the Offer Catalog.");
 
         HttpEntity rsEntity;
         try {
-            rsEntity = getFromCatalog("/resourceCatalogManagement/v2/resourceCandidate/",
+            rsEntity = getFromCatalog("/resourceCatalogManagement/v2/resourceSpecification/",
                     resourceSpecificationCatalogId);
         } catch(MissingEntityOnCatalogException e) {
             String msg = "Resource Specification " + resourceSpecificationCatalogId + " not found in Offer Catalog.";
@@ -114,20 +115,24 @@ public class TranslatorCatalogInteractionService {
             throw new MissingEntityOnCatalogException(msg);
         }
 
-        ResourceSpecification rs = objectMapper.readValue(EntityUtils.toString(rsEntity), ResourceSpecification.class);
+        ResourceSpecification rs = Arrays.asList(objectMapper.readValue(EntityUtils.toString(rsEntity),
+                ResourceSpecification[].class)).get(0);
 
         ResourceSpecificationRef rsr = rc.getResourceSpecification();
         if(rsr == null)
             throw new CatalogException("Null Resource Specification Ref in Resource Candidate: abort.");
 
-        if(!rsr.getHref().equals(rs.getHref()) || !rsr.getId().equals(rs.getId()))
-            throw new ResourceMismatchException("Mismatch between Resource Candidate and Resource Specification: " +
-                    "not coupled.");
+        if(!rsr.getHref().equals(rs.getHref()) || !rsr.getId().equals(rs.getId())) {
+            String msg = "Mismatch between Resource Candidate and Resource Specification: " +
+                    "not coupled.";
+            log.info(msg);
+            throw new ResourceMismatchException(msg);
+        }
 
         return rsr;
     }
 
-    private HttpEntity post(String body, String requestPath) throws UnsupportedEncodingException, CatalogException {
+    public HttpEntity post(String body, String requestPath) throws UnsupportedEncodingException, CatalogException {
 
         String request = protocol + catalogHostname + ":" + catalogPort + contextPath + requestPath;
         CloseableHttpClient httpClient = HttpClients.createDefault();

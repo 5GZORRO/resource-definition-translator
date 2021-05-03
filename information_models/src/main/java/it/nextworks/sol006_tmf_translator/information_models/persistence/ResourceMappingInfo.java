@@ -1,5 +1,6 @@
 package it.nextworks.sol006_tmf_translator.information_models.persistence;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import javax.persistence.Column;
@@ -24,6 +25,17 @@ public class ResourceMappingInfo {
     @JsonProperty("resourceSpecificationCatalogId")
     @Column(name = "resource_specification_catalog_id")
     private String resourceSpecificationCatalogId;
+
+    @JsonCreator
+    public ResourceMappingInfo(@JsonProperty("descriptorId") String descriptorId,
+                               @JsonProperty("resourceCandidateCatalogId") String resourceCandidateCatalogId,
+                               @JsonProperty("resourceSpecificationCatalogId") String resourceSpecificationCatalogId) {
+        this.descriptorId = descriptorId;
+        this.resourceCandidateCatalogId = resourceCandidateCatalogId;
+        this.resourceSpecificationCatalogId = resourceSpecificationCatalogId;
+    }
+
+    public ResourceMappingInfo() {}
 
     public ResourceMappingInfo descriptorId(String descriptorId) {
         this.descriptorId = descriptorId;
