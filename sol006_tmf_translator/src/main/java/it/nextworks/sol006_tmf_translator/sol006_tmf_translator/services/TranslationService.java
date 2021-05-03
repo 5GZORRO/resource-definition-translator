@@ -3,7 +3,7 @@ package it.nextworks.sol006_tmf_translator.sol006_tmf_translator.services;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import it.nextworks.sol006_tmf_translator.information_models.commons.Pair;
-import it.nextworks.sol006_tmf_translator.information_models.persistence.ResourceMappingInfo;
+import it.nextworks.sol006_tmf_translator.information_models.persistence.MappingInfo;
 import it.nextworks.sol006_tmf_translator.information_models.resource.ResourceCandidate;
 import it.nextworks.sol006_tmf_translator.information_models.resource.ResourceCandidateCreate;
 import it.nextworks.sol006_tmf_translator.information_models.resource.ResourceSpecification;
@@ -33,13 +33,13 @@ public class TranslationService {
 
     private final TranslatorCatalogInteractionService translatorCatalogInteractionService;
 
-    private final ResourceMappingInfoService resourceMappingInfoService;
+    private final MappingInfoService mappingInfoService;
 
     @Autowired
     public TranslationService(ObjectMapper objectMapper,
                               TranslatorEngine translatorEngine,
                               TranslatorCatalogInteractionService translatorCatalogInteractionService,
-                              ResourceMappingInfoService resourceMappingInfoService) {
+                              MappingInfoService mappingInfoService) {
         this.objectMapper = objectMapper;
         SimpleModule module = new SimpleModule();
         module.addSerializer(OffsetDateTime.class, new CustomOffsetDateTimeSerializer());
@@ -47,7 +47,7 @@ public class TranslationService {
 
         this.translatorEngine = translatorEngine;
         this.translatorCatalogInteractionService = translatorCatalogInteractionService;
-        this.resourceMappingInfoService = resourceMappingInfoService;
+        this.mappingInfoService = mappingInfoService;
     }
 
     private Pair<ResourceCandidate, ResourceSpecification> translateAndPostVnfd(Vnfd vnfd) throws IOException, CatalogException {
@@ -72,7 +72,7 @@ public class TranslationService {
                 translatorCatalogInteractionService.post(rccJson, "/resourceCatalogManagement/v2/resourceCandidate");
         ResourceCandidate rc = objectMapper.readValue(EntityUtils.toString(httpEntity), ResourceCandidate.class);
 
-        resourceMappingInfoService.save(new ResourceMappingInfo(vnfdId, rc.getId(), rs.getId()));
+        mappingInfoService.save(new MappingInfo(vnfdId, rc.getId(), rs.getId()));
 
         return new Pair<>(rc, rs);
     }
@@ -83,9 +83,9 @@ public class TranslationService {
         String vnfdId = vnfd.getId();
 
         boolean found = true;
-        ResourceMappingInfo resourceMappingInfo = null;
+        MappingInfo mappingInfo = null;
         try {
-            resourceMappingInfo = resourceMappingInfoService.get(vnfdId);
+            mappingInfo = mappingInfoService.get(vnfdId);
         } catch (NotExistingEntityException e) {
             found = false;
         }
@@ -93,8 +93,8 @@ public class TranslationService {
         if(found) {
             try {
                 translatorCatalogInteractionService
-                        .isResourcePresent(resourceMappingInfo.getResourceCandidateCatalogId(),
-                                resourceMappingInfo.getResourceSpecificationCatalogId());
+                        .isResourcePresent(mappingInfo.getCandidateCatalogId(),
+                                mappingInfo.getSpecificationCatalogId());
             } catch (MissingEntityOnCatalogException | ResourceMismatchException e) {
                 found = false;
             }
@@ -106,7 +106,7 @@ public class TranslationService {
             }
             else {
                 try {
-                    resourceMappingInfoService.delete(vnfdId);
+                    mappingInfoService.delete(vnfdId);
                 } catch (NotExistingEntityException e) {
                     log.info("Entry for " + vnfdId + " that should exists in DB, not found.");
                 }
@@ -139,7 +139,7 @@ public class TranslationService {
                 translatorCatalogInteractionService.post(rccJson, "/resourceCatalogManagement/v2/resourceCandidate");
         ResourceCandidate rc = objectMapper.readValue(EntityUtils.toString(httpEntity), ResourceCandidate.class);
 
-        resourceMappingInfoService.save(new ResourceMappingInfo(pnfdId, rc.getId(), rs.getId()));
+        mappingInfoService.save(new MappingInfo(pnfdId, rc.getId(), rs.getId()));
 
         return new Pair<>(rc, rs);
     }
@@ -150,9 +150,9 @@ public class TranslationService {
         String pnfdId = pnfd.getId();
 
         boolean found = true;
-        ResourceMappingInfo resourceMappingInfo = null;
+        MappingInfo mappingInfo = null;
         try {
-            resourceMappingInfo = resourceMappingInfoService.get(pnfdId);
+            mappingInfo = mappingInfoService.get(pnfdId);
         } catch (NotExistingEntityException e) {
             found = false;
         }
@@ -160,8 +160,8 @@ public class TranslationService {
         if(found) {
             try {
                 translatorCatalogInteractionService
-                        .isResourcePresent(resourceMappingInfo.getResourceCandidateCatalogId(),
-                                resourceMappingInfo.getResourceSpecificationCatalogId());
+                        .isResourcePresent(mappingInfo.getCandidateCatalogId(),
+                                mappingInfo.getSpecificationCatalogId());
             } catch (MissingEntityOnCatalogException | ResourceMismatchException e) {
                 found = false;
             }
@@ -173,7 +173,7 @@ public class TranslationService {
             }
             else {
                 try {
-                    resourceMappingInfoService.delete(pnfdId);
+                    mappingInfoService.delete(pnfdId);
                 } catch (NotExistingEntityException e) {
                     log.info("Entry for " + pnfdId + " that should exists in DB, not found.");
                 }
