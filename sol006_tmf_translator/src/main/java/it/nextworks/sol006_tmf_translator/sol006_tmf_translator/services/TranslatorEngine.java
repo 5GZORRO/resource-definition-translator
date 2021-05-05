@@ -5,13 +5,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import it.nextworks.sol006_tmf_translator.information_models.commons.Any;
-import it.nextworks.sol006_tmf_translator.information_models.commons.Pair;
 import it.nextworks.sol006_tmf_translator.information_models.commons.ResourceSpecificationRef;
+import it.nextworks.sol006_tmf_translator.information_models.commons.ServiceSpecificationRef;
 import it.nextworks.sol006_tmf_translator.information_models.resource.*;
-import it.nextworks.sol006_tmf_translator.information_models.service.ServiceCandidate;
-import it.nextworks.sol006_tmf_translator.information_models.service.ServiceSpecCharacteristic;
-import it.nextworks.sol006_tmf_translator.information_models.service.ServiceSpecification;
-import it.nextworks.sol006_tmf_translator.information_models.service.ServiceSpecificationCreate;
+import it.nextworks.sol006_tmf_translator.information_models.service.*;
 import it.nextworks.sol006_tmf_translator.information_models.sol006.*;
 import it.nextworks.sol006_tmf_translator.sol006_tmf_translator.commons.config.CustomOffsetDateTimeSerializer;
 import org.slf4j.Logger;
@@ -43,8 +40,7 @@ public class TranslatorEngine {
 
     public ResourceSpecificationCreate buildVnfdResourceSpecification(Vnfd vnfd) {
 
-        String vnfdId = vnfd.getId();
-        log.info("Translating vnfd " + vnfdId + ".");
+        log.info("Translating vnfd " + vnfd.getId() + ".");
 
         String vnfdProductName = vnfd.getProductName();
         ResourceSpecificationCreate rsc = new ResourceSpecificationCreate()
@@ -654,23 +650,21 @@ public class TranslatorEngine {
                             else if(!affinityOrAntiAffinityGroups.isArray())
                                 log.debug("vdu-profile affinity-or-anti-affinity-group not a list, not inserted in value field.");
                             else {
-                                int i = 0;
-                                StringBuilder valueBuilder = new StringBuilder(value);
+                                List<String> valueLst = new ArrayList<>();
                                 for(JsonNode affinityOrAntiAffinityGroup : affinityOrAntiAffinityGroups) {
                                     JsonNode affinityOrAntiAffinityGroupId = affinityOrAntiAffinityGroup.get("id");
                                     if(affinityOrAntiAffinityGroupId == null || !affinityOrAntiAffinityGroupId.isTextual())
                                         log.debug("null or non textual vdu-profile affinity-or-anti-affinity-group id, " +
                                                 "not inserted in value field.");
                                     else {
-                                        if(!valueBuilder.toString().isEmpty())
-                                            valueBuilder.append(", ");
-
-                                        valueBuilder.append("affinity-or-anti-affinity-group").append(i).append(": ")
-                                                .append("id: ").append(affinityOrAntiAffinityGroupId.asText());
-                                        i++;
+                                        valueLst.add("( " + "id: " + affinityOrAntiAffinityGroupId.asText() + " )");
                                     }
                                 }
-                                value = valueBuilder.toString();
+
+                                if(!value.isEmpty())
+                                    value = value + ", ";
+
+                                value = value + "affinity-or-anti-affinity-group: " + valueLst.toString();
                             }
                         }
 
@@ -1246,7 +1240,12 @@ public class TranslatorEngine {
                         .name("pnfd specification: " + pnfdId));
     }
 
-    public Pair<ServiceCandidate, ServiceSpecification> translateNsd(Nsd nsd) {
+    public ServiceSpecificationCreate buildNsdServiceSpecification(Nsd nsd,
+                                                                   List<ResourceSpecificationRef> vnfdRefs,
+                                                                   List<ResourceSpecificationRef> pnfdRefs,
+                                                                   List<ServiceSpecificationRef> nsdRefs) {
+
+        log.info("Translating nsd " + nsd.getId() + ".");
 
         String nsdName = nsd.getName();
         String nsdVersion = nsd.getVersion();
@@ -1258,18 +1257,826 @@ public class TranslatorEngine {
 
         List<ServiceSpecCharacteristic> serviceSpecCharacteristics = new ArrayList<>();
 
-        List<String> vnfIds = nsd.getVnfdId();
-        if(vnfIds == null)
-            log.debug("null vnfd-id list, skipping resources.");
+        List<ResourceSpecificationRef> rsRefs = new ArrayList<>();
+
+        for(ResourceSpecificationRef vnfdRef : vnfdRefs) {
+            String vnfdRefId = vnfdRef.getId();
+            rsRefs.add(new ResourceSpecificationRef()
+                    .id(vnfdRefId)
+                    .href(vnfdRef.getHref())
+                    .name("vnfd specification: " + vnfdRefId));
+        }
+
+        for(ResourceSpecificationRef pnfdRef : pnfdRefs) {
+            String pnfdRefId = pnfdRef.getId();
+            rsRefs.add(new ResourceSpecificationRef()
+                    .id(pnfdRefId)
+                    .href(pnfdRef.getHref())
+                    .name("pnfd specification: " + pnfdRefId));
+        }
+
+        ssc.setResourceSpecification(rsRefs);
+
+        List<ServiceSpecRelationship> ssrRefs = new ArrayList<>();
+
+        for(ServiceSpecificationRef nsdRef : nsdRefs) {
+            String nsdRefId = nsdRef.getId();
+            ssrRefs.add(new ServiceSpecRelationship()
+                    .id(nsdRefId)
+                    .href(nsdRef.getHref())
+                    .name("nsd specification: " + nsdRefId)
+                    .relationshipType("nested"));
+        }
+
+        ssc.setServiceSpecRelationship(ssrRefs);
+
+        List<NsdSapd> nsdSapds = nsd.getSapd();
+        if(nsdSapds == null)
+            log.debug("null sapd list, skipping characteristics.");
         else {
-            for(String vnfId : vnfIds) {
+            for(NsdSapd nsdSapd : nsdSapds) {
 
-                String rcName = "vnfd:" + vnfId;
-                //ResourceSpecificationRef rsr = retrieveResource(rcName);
+                String nsdSapdId = nsdSapd.getId();
+                if(nsdSapdId == null) {
+                    log.debug("null sapd item id, skipping characteristic.");
+                    continue;
+                }
 
+                ServiceSpecCharacteristic sscNsdSapd = new ServiceSpecCharacteristic()
+                        .configurable(true)
+                        .description("sapd " + nsdSapdId)
+                        .extensible(true)
+                        .isUnique(true)
+                        .name(nsdSapdId);
+
+                List<ServiceSpecCharacteristicValue> sscv = new ArrayList<>();
+
+                String virtualLinkDesc = nsdSapd.getVirtualLinkDesc();
+                if(virtualLinkDesc ==  null)
+                    log.debug("null virtual-link-desc, skipping value.");
+                else {
+                    ServiceSpecCharacteristicValue vldSscv = new ServiceSpecCharacteristicValue()
+                            .value(new Any().alias("virtual-link-desc")
+                                    .value(virtualLinkDesc))
+                            .valueType("String");
+                    sscv.add(vldSscv);
+                }
+
+                VnfAssociatedCpdId vnf = nsdSapd.getVnf();
+                if(vnf == null)
+                    log.debug("null vnf, skipping value.");
+                else {
+                    String value = "";
+
+                    String vnfId = vnf.getVnfdId();
+                    if(vnfId == null)
+                        log.debug("null vnf id, not inserted in value field.");
+                    else
+                        value = "vnfd-id: " + vnfId;
+
+                    String extCpdId = vnf.getExtCpdId();
+                    if(extCpdId == null)
+                        log.debug("null vnf ext-cpd-id, not inserted in value field.");
+                    else {
+                        if(!value.isEmpty())
+                            value = value + ", ";
+
+                        value = value + "ext-cpd-id: " + extCpdId;
+                    }
+
+                    ServiceSpecCharacteristicValue vnfSscv = new ServiceSpecCharacteristicValue()
+                            .value(new Any().alias("vnf")
+                                    .value(value))
+                            .valueType("VnfAssociatedCpdId");
+                    sscv.add(vnfSscv);
+                }
+
+                PnfAssociatedCpdId pnf = nsdSapd.getPnf();
+                if(pnf == null)
+                    log.debug("null pnf, skipping value");
+                else {
+                    String value = "";
+
+                    String pnfId = pnf.getPnfdId();
+                    if(pnfId == null)
+                        log.debug("null pnf id, not inserted in value field.");
+                    else
+                        value = "pnfd-id: " + pnfId;
+
+                    String extCpdId = pnf.getExtCpdId();
+                    if(extCpdId == null)
+                        log.debug("null pnf ext-cpd-id, not inserted in value field.");
+                    else {
+                        if(!value.isEmpty())
+                            value = value + ", ";
+
+                        value = value + "ext-cpd-id: " + extCpdId;
+                    }
+
+                    ServiceSpecCharacteristicValue pnfSscv = new ServiceSpecCharacteristicValue()
+                            .value(new Any().alias("pnf")
+                                    .value(value))
+                            .valueType("PnfAssociatedCpdId");
+                    sscv.add(pnfSscv);
+                }
+
+                NsAssociatedCpdId ns = nsdSapd.getNs();
+                if(ns == null)
+                    log.debug("null ns, skipping value.");
+                else {
+                    String value = "";
+
+                    String nsId = ns.getNsdId();
+                    if(nsId == null)
+                        log.debug("null ns id, not inserted in value field.");
+                    else
+                        value = "ns-id: " + nsId;
+
+                    String extCpdId = ns.getExtCpdId();
+                    if(extCpdId == null)
+                        log.debug("null ns ext-cpd-id, not inserted in value field.");
+                    else {
+                        if(!value.isEmpty())
+                            value = value + ", ";
+
+                        value = value + "ext-cpd-id: " + extCpdId;
+                    }
+
+                    ServiceSpecCharacteristicValue nsSscv = new ServiceSpecCharacteristicValue()
+                            .value(new Any().alias("ns")
+                                    .value(value))
+                            .valueType("NsAssociatedCpdId");
+                    sscv.add(nsSscv);
+                }
+
+                sscNsdSapd.setServiceSpecCharacteristicValue(sscv);
+
+                serviceSpecCharacteristics.add(sscNsdSapd);
             }
         }
 
-        return new Pair<>(null, null);
+        List<Object> virtualLinkDescsObjs = nsd.getVirtualLinkDesc();
+        if(virtualLinkDescsObjs == null)
+            log.debug("null virtual-link-desc (objs) list, skipping characteristics.");
+        else {
+            ArrayNode virtualLinkDescs = objectMapper.valueToTree(virtualLinkDescsObjs);
+            if(virtualLinkDescs == null)
+                log.debug("null virtual-link-desc list, skipping characteristics.");
+            else if(!virtualLinkDescs.isArray())
+                log.debug("null virtual-link-desc not a list, skipping characteristics.");
+            else {
+                for(JsonNode jsonNode : virtualLinkDescs) {
+
+                    JsonNode jsonId = jsonNode.get("id");
+                    if(jsonId == null || !jsonId.isTextual()) {
+                        log.debug("null or non textual virtual-link-desc item id, skipping characteristic.");
+                        continue;
+                    }
+
+                    String vldId = jsonId.asText();
+                    ServiceSpecCharacteristic sscVld = new ServiceSpecCharacteristic()
+                            .configurable(true)
+                            .description("virtual-link-desc " + vldId)
+                            .extensible(true)
+                            .isUnique(true)
+                            .name(vldId);
+
+                    List<ServiceSpecCharacteristicValue> sscv = new ArrayList<>();
+
+                    JsonNode connectivityType = jsonNode.get("connectivity-type");
+                    if(connectivityType == null)
+                        log.debug("null connectivity-type, skipping value.");
+                    else {
+                        JsonNode layerProtocol = connectivityType.get("layer-protocol");
+                        if(layerProtocol == null || !layerProtocol.isTextual())
+                            log.debug("null or non textual connectivity-type layer-protocol, not inserted in value field.");
+                        else {
+                            ServiceSpecCharacteristicValue lpSscv = new ServiceSpecCharacteristicValue()
+                                    .value(new Any().alias("connectivity-type")
+                                            .value("layer-protocol: " + layerProtocol.asText()))
+                                    .valueType("Object");
+                            sscv.add(lpSscv);
+                        }
+                    }
+
+                    JsonNode df = jsonNode.get("df");
+                    if(df == null)
+                        log.debug("null df, skipping value.");
+                    else {
+                        String value = "";
+
+                        JsonNode id = df.get("id");
+                        if(id == null || !id.isTextual())
+                            log.debug("null or non textual df id, not inserted in value field.");
+                        else
+                            value = "id: " + id.asText();
+
+                        JsonNode qos = df.get("qos");
+                        if(qos == null)
+                            log.debug("null df qos, not inserted in value field.");
+                        else {
+                            JsonNode latency = qos.get("latency");
+                            if(latency == null || !latency.isTextual())
+                                log.debug("null or non textual df qos latency, not inserted in value field.");
+                            else {
+                                if(!value.isEmpty())
+                                    value = value + ", ";
+
+                                value = value + "qos -> latency: " + latency.asText();
+                            }
+
+                            JsonNode packetDelayVariation = qos.get("packet-delay-variation");
+                            if(packetDelayVariation == null || !packetDelayVariation.isTextual())
+                                log.debug("null or non textual df qos packet-delay-variation, " +
+                                        "not inserted in value field.");
+                            else {
+                                if(!value.isEmpty())
+                                    value = value + ", ";
+
+                                value = value + "qos -> packet-delay-variation: " + packetDelayVariation.asText();
+                            }
+                        }
+
+                        ServiceSpecCharacteristicValue dfSscv = new ServiceSpecCharacteristicValue()
+                                .value(new Any().alias("df")
+                                        .value(value))
+                                .valueType("Object");
+                        sscv.add(dfSscv);
+                    }
+
+                    sscVld.setServiceSpecCharacteristicValue(sscv);
+
+                    serviceSpecCharacteristics.add(sscVld);
+                }
+            }
+        }
+
+        List<NsdDf> dfs = nsd.getDf();
+        if(dfs == null)
+            log.debug("null df list, skipping characteristics.");
+        else {
+            for(NsdDf df : dfs) {
+
+                String dfId = df.getId();
+                if(dfId == null) {
+                    log.debug("null df item id, skipping value.");
+                    continue;
+                }
+
+                ServiceSpecCharacteristic sscDf = new ServiceSpecCharacteristic()
+                        .configurable(true)
+                        .description("df " + dfId)
+                        .extensible(true)
+                        .isUnique(true)
+                        .name(dfId);
+
+                List<ServiceSpecCharacteristicValue> sscv = new ArrayList<>();
+
+                List<VnfProfileItem> vnfProfile = df.getVnfProfile();
+                if(vnfProfile == null)
+                    log.debug("null vnf-profile list, skipping values.");
+                else {
+                    for(VnfProfileItem vnfProfileItem : vnfProfile) {
+
+                        String vnfProfileItemId = vnfProfileItem.getId();
+                        if(vnfProfileItemId == null) {
+                            log.debug("null vnf-profile item id, skipping value.");
+                            continue;
+                        }
+
+                        String value = "";
+
+                        String vnfdId = vnfProfileItem.getVnfdId();
+                        if(vnfdId == null)
+                            log.debug("null vnf-profile vnfd-id, not inserted in value field.");
+                        else
+                            value = "vnfd-id: " + vnfdId;
+
+                        String flavourId = vnfProfileItem.getFlavourId();
+                        if(flavourId == null)
+                            log.debug("null vnf-profile flavour-id, not inserted in value field.");
+                        else {
+                            if(!value.isEmpty())
+                                value = value + ", ";
+
+                            value = value + "flavour-id: " + flavourId;
+                        }
+
+                        String instantiationLevel = vnfProfileItem.getInstantiationLevel();
+                        if(instantiationLevel == null)
+                            log.debug("null vnf-profile instantiation-level, not inserted in value field");
+                        else {
+                            if(!value.isEmpty())
+                                value = value + ", ";
+
+                            value = value + "instantiation-level: " + instantiationLevel;
+                        }
+
+                        String minNumberOfInstances = vnfProfileItem.getMinNumberOfInstances();
+                        if(minNumberOfInstances == null)
+                            log.debug("null vnf-profile min-number-of-instances, not inserted in value field.");
+                        else {
+                            if(!value.isEmpty())
+                                value = value + ", ";
+
+                            value = value + "min-number-of-instances: " + minNumberOfInstances;
+                        }
+
+                        String maxNumberOfInstances = vnfProfileItem.getMaxNumberOfInstances();
+                        if(maxNumberOfInstances == null)
+                            log.debug("null vnf-profile max-number-of-instances");
+                        else {
+                            if(!value.isEmpty())
+                                value = value + ", ";
+
+                            value = value + "max-number-of-instances: " + maxNumberOfInstances;
+                        }
+
+                        List<Object> virtualLinkConnectivityObjs = vnfProfileItem.getVirtualLinkConnectivity();
+                        if(virtualLinkConnectivityObjs == null)
+                            log.debug("null vnf-profile virtual-link-connectivity (objs), not inserted in value field.");
+                        else {
+                            ArrayNode virtualLinkConnectivity = objectMapper.valueToTree(virtualLinkConnectivityObjs);
+                            if(virtualLinkConnectivity == null)
+                                log.debug("null vnf-profile virtual-link-connectivity, not inserted in value field.");
+                            else if(!virtualLinkConnectivity.isArray())
+                                log.debug("null vnf-profile virtual-link-connectivity not a list, not inserted in value field.");
+                            else {
+                                List<String> valueLst = new ArrayList<>();
+                                for(JsonNode jsonNode : virtualLinkConnectivity) {
+
+                                    String tmp = "";
+
+                                    JsonNode virtualLinkProfileId = jsonNode.get("virtual-link-profile-id");
+                                    if(virtualLinkProfileId == null || !virtualLinkProfileId.isTextual())
+                                        log.debug("null or non textual vnf-profile virtual-link-connectivity " +
+                                                "virtual-link-profile-id, not inserted in value field.");
+                                    else
+                                        tmp = tmp + "virtual-link-profile-id: " + virtualLinkProfileId.asText();
+
+                                    JsonNode constituentCpdId = jsonNode.get("constituent-cpd-id");
+                                    if(constituentCpdId == null)
+                                        log.debug("null vnf-profile virtual-link-connectivity constituent-cpd-id, " +
+                                                "not inserted in value field.");
+                                    else {
+                                        JsonNode constituentBaseElementId =
+                                                constituentCpdId.get("constituent-base-element-id");
+                                        if(constituentBaseElementId == null || !constituentBaseElementId.isTextual())
+                                            log.debug("null vnf-profile virtual-link-connectivity constituent-cpd-id " +
+                                                    "constituent-base-element-id, not inserted in value field.");
+                                        else {
+                                            if(!tmp.isEmpty())
+                                                tmp = tmp + ", ";
+
+                                            tmp = tmp + "constituent-cpd-id -> constituent-base-element-id: " +
+                                                    constituentBaseElementId.asText();
+                                        }
+
+                                        JsonNode constituentCpdIdEl = constituentCpdId.get("constituent-cpd-id");
+                                        if(constituentCpdIdEl == null || !constituentCpdIdEl.isTextual())
+                                            log.debug("null vnf-profile virtual-link-connectivity constituent-cpd-id " +
+                                                    "constituent-cpd-id, not inserted in value field.");
+                                        else {
+                                            if(!tmp.isEmpty())
+                                                tmp = tmp + ", ";
+
+                                            tmp = tmp + "constituent-cpd-id -> constituent-cpd-id: " +
+                                                    constituentCpdIdEl.asText();
+                                        }
+                                    }
+
+                                    valueLst.add("( " + tmp + " )");
+                                }
+
+                                if(!value.isEmpty())
+                                    value = value + ", ";
+
+                                value = value + "virtual-link-connectivity: " + valueLst.toString();
+                            }
+                        }
+
+                        ServiceSpecCharacteristicValue vpiSscv = new ServiceSpecCharacteristicValue()
+                                .value(new Any().alias("vnf-profile " + vnfProfileItemId)
+                                        .value(value))
+                                .valueType("VnfProfileItem");
+                        sscv.add(vpiSscv);
+                    }
+                }
+
+                List<NsdPnfprofile> pnfProfile = df.getPnfProfile();
+                if(pnfProfile == null)
+                    log.debug("null pnf-profile list, skipping values.");
+                else {
+                    for(NsdPnfprofile nsdPnfprofile : pnfProfile) {
+
+                        String nsdPnfprofileId = nsdPnfprofile.getId();
+                        if(nsdPnfprofileId == null) {
+                            log.debug("null pnf-profile item id, skipping value.");
+                            continue;
+                        }
+
+                        String value = "";
+
+                        String pnfdId = nsdPnfprofile.getPnfdId();
+                        if(pnfdId == null)
+                            log.debug("null pnf-profile pnfd-id, not inserted in value field.");
+                        else
+                            value = value + "pnfd-id: " + pnfdId;
+
+                        List<VirtualLinkConnectivitySchema> virtualLinkConnectivity =
+                                nsdPnfprofile.getVirtualLinkConnectivity();
+                        if(virtualLinkConnectivity == null)
+                            log.debug("null pnf-profile virtual-link-connectivity, not inserted in value field.");
+                        else {
+                            List<String> valueLst = new ArrayList<>();
+                            for(VirtualLinkConnectivitySchema virtualLinkConnectivitySchema : virtualLinkConnectivity) {
+
+                                String tmp = "";
+
+                                String virtualLinkProfileId = virtualLinkConnectivitySchema.getVirtualLinkProfileId();
+                                if(virtualLinkProfileId == null)
+                                    log.debug("null pnf-profile virtual-link-connectivity virtual-link-profile-id, " +
+                                            "not inserted in value field.");
+                                else
+                                    tmp = tmp + "virtual-link-profile-id: " +virtualLinkProfileId;
+
+                                List<NsdConstituentcpdid2> constituentCpdId =
+                                        virtualLinkConnectivitySchema.getConstituentCpdId();
+                                if(constituentCpdId == null)
+                                    log.debug("null pnf-profile virtual-link-connectivity constituent-cpd-id, " +
+                                            "not inserted in value field.");
+                                else {
+                                    List<String> valueLst2 = new ArrayList<>();
+                                    for(NsdConstituentcpdid2 nsdConstituentcpdid2 : constituentCpdId) {
+
+                                        String tmp2 = "";
+
+                                        String constituentBaseElementId =
+                                                nsdConstituentcpdid2.getConstituentBaseElementId();
+                                        if(constituentBaseElementId == null)
+                                            log.debug("null pnf-profile virtual-link-connectivity constituent-cpd-id " +
+                                                    "constituent-base-element-id, not inserted in value field.");
+                                        else
+                                            tmp2 = tmp2 + "constituent-base-element-id: " + constituentBaseElementId;
+
+                                        String constituentCpdId1 = nsdConstituentcpdid2.getConstituentCpdId();
+                                        if(constituentCpdId1 == null)
+                                            log.debug("null pnf-profile virtual-link-connectivity constituent-cpd-id " +
+                                                    "constituent-cpd-id, not inserted in value field.");
+                                        else {
+                                            if(!tmp2.isEmpty())
+                                                tmp2 = tmp2 + ", ";
+
+                                            tmp2 = tmp2 + "constituent-cpd-id: " + constituentCpdId1;
+                                        }
+
+                                        valueLst2.add("( " + tmp2 + " )");
+                                    }
+
+                                    if(!tmp.isEmpty())
+                                        tmp = tmp + ", ";
+
+                                    tmp = tmp + "constituent-cpd-id: " + valueLst2.toString();
+                                }
+
+                                valueLst.add("( " + tmp + " )");
+                            }
+
+                            if(!value.isEmpty())
+                                value = value + ", ";
+
+                            value = value + "virtual-link-connectivity: " + valueLst.toString();
+                        }
+
+                        ServiceSpecCharacteristicValue nppSscv = new ServiceSpecCharacteristicValue()
+                                .value(new Any().alias("pnf-profile " + nsdPnfprofileId)
+                                        .value(value))
+                                .valueType("NsdPnfprofile");
+                        sscv.add(nppSscv);
+                    }
+                }
+
+                List<NsdNsprofile> nsProfile = df.getNsProfile();
+                if(nsProfile == null)
+                    log.debug("null ns-profile list, skipping values.");
+                else {
+                    for (NsdNsprofile nsdNsprofile : nsProfile) {
+
+                        String nsdNsprofileId = nsdNsprofile.getId();
+                        if(nsdNsprofileId == null) {
+                            log.debug("null ns-profile item id, skipping value.");
+                            continue;
+                        }
+
+                        String value = "";
+
+                        String nsdId = nsdNsprofile.getNsdId();
+                        if(nsdId == null)
+                            log.debug("null ns-profile nsd-id, not inserted in value field.");
+                        else
+                            value = "nsd-id: " + nsdId;
+
+                        String instantiationLevelId = nsdNsprofile.getInstantiationLevelId();
+                        if(instantiationLevelId == null)
+                            log.debug("null ns-profile instantiation-level-id, not inserted in value field.");
+                        else {
+                            if(!value.isEmpty())
+                                value = value + ", ";
+
+                            value = value + "instantiation-level-id: " + instantiationLevelId;
+                        }
+
+                        String minNumberOfInstances = nsdNsprofile.getMinNumberOfInstances();
+                        if(minNumberOfInstances == null)
+                            log.debug("null ns-profile min-number-of-instances, not inserted in value field.");
+                        else {
+                            if(!value.isEmpty())
+                                value = value + ", ";
+
+                            value = value + "min-number-of-instances: " + minNumberOfInstances;
+                        }
+
+                        String maxNumberOfInstances = nsdNsprofile.getMaxNumberOfInstances();
+                        if(maxNumberOfInstances == null)
+                            log.debug("null ns-profile max-number-of-instances, not inserted in value field.");
+                        else {
+                            if(!value.isEmpty())
+                                value = value + ", ";
+
+                            value = value + "max-number-of-instances: " + maxNumberOfInstances;
+                        }
+
+                        String nsDfId = nsdNsprofile.getNsDfId();
+                        if(nsDfId == null)
+                            log.debug("null ns-profile ns-df-id, not inserted in value field.");
+                        else {
+                            if(!value.isEmpty())
+                                value = value + ", ";
+
+                            value = value + "ns-df-id: " + nsDfId;
+                        }
+
+                        List<VirtualLinkConnectivitySchema> virtualLinkConnectivity =
+                                nsdNsprofile.getVirtualLinkConnectivity();
+                        if(virtualLinkConnectivity == null)
+                            log.debug("null ns-profile virtual-link-connectivity, not inserted in value field.");
+                        else {
+                            List<String> valueLst = new ArrayList<>();
+                            for(VirtualLinkConnectivitySchema virtualLinkConnectivitySchema : virtualLinkConnectivity) {
+
+                                String tmp = "";
+
+                                String virtualLinkProfileId = virtualLinkConnectivitySchema.getVirtualLinkProfileId();
+                                if(virtualLinkProfileId == null)
+                                    log.debug("null ns-profile virtual-link-connectivity virtual-link-profile-id, " +
+                                            "not inserted in value field.");
+                                else
+                                    tmp = tmp + "virtual-link-profile-id: " + virtualLinkProfileId;
+
+                                List<NsdConstituentcpdid2> constituentCpdId =
+                                        virtualLinkConnectivitySchema.getConstituentCpdId();
+                                if(constituentCpdId == null)
+                                    log.debug("null ns-profile virtual-link-connectivity constituent-cpd-id, " +
+                                            "not inserted in value field.");
+                                else {
+                                    List<String> valueLst2 = new ArrayList<>();
+                                    for(NsdConstituentcpdid2 nsdConstituentcpdid2 : constituentCpdId) {
+
+                                        String tmp2 = "";
+
+                                        String constituentBaseElementId =
+                                                nsdConstituentcpdid2.getConstituentBaseElementId();
+                                        if(constituentBaseElementId == null)
+                                            log.debug("null ns-profile virtual-link-connectivity constituent-cpd-id " +
+                                                    "constituent-base-element-id, not inserted in value field.");
+                                        else
+                                            tmp2 = tmp2 + "constituent-base-element-id: " + constituentBaseElementId;
+
+                                        String constituentCpdId1 = nsdConstituentcpdid2.getConstituentCpdId();
+                                        if(constituentCpdId1 == null)
+                                            log.debug("null ns-profile virtual-link-connectivity constituent-cpd-id " +
+                                                    "constituent-cpd-id, not inserted in value field.");
+                                        else {
+                                            if(!tmp2.isEmpty())
+                                                tmp2 = tmp2 + ", ";
+
+                                            tmp2 = tmp2 + "constituent-cpd-id: " + constituentCpdId1;
+                                        }
+
+                                        valueLst2.add("( " + tmp2 + " )");
+                                    }
+
+                                    if(!tmp.isEmpty())
+                                        tmp = tmp + ", ";
+
+                                    tmp = tmp + "constituent-cpd-id: " + valueLst2.toString();
+                                }
+
+                                valueLst.add("( " + tmp + " )");
+                            }
+
+                            if(!value.isEmpty())
+                                value = value + ", ";
+
+                            value = value + "virtual-link-connectivity: " + valueLst.toString();
+                        }
+
+                        ServiceSpecCharacteristicValue nspSscv = new ServiceSpecCharacteristicValue()
+                                .value(new Any().alias("ns-profile " + nsdNsprofileId)
+                                .value(value))
+                                .valueType("NsdNsprofile");
+                        sscv.add(nspSscv);
+                    }
+                }
+
+                List<VirtualLinkProfileItem> virtualLinkProfile = df.getVirtualLinkProfile();
+                if(virtualLinkProfile == null)
+                    log.debug("null virtual-link-profile list, skipping values.");
+                else {
+                    for(VirtualLinkProfileItem virtualLinkProfileItem : virtualLinkProfile) {
+
+                        String virtualLinkProfileItemId = virtualLinkProfileItem.getId();
+                        if(virtualLinkProfileItemId == null) {
+                            log.debug("null virtual-link-profile item id, skipping value.");
+                            continue;
+                        }
+
+                        String value = "";
+
+                        String virtualLinkDescId = virtualLinkProfileItem.getVirtualLinkDescId();
+                        if(virtualLinkDescId == null)
+                            log.debug("null virtual-link-profile virtual-link-desc-id, not inserted in value field.");
+                        else
+                            value = value + "virtual-link-desc-id: " + virtualLinkDescId;
+
+                        String flavourId = virtualLinkProfileItem.getFlavourId();
+                        if(flavourId == null)
+                            log.debug("null virtual-link-profile flavour-id, not inserted in value field.");
+                        else {
+                            if(!value.isEmpty())
+                                value = value + ", ";
+
+                            value = value + "flavour-id: " + flavourId;
+                        }
+
+                        LinkBitrateRequirements maxBitrateRequirements =
+                                virtualLinkProfileItem.getMaxBitrateRequirements();
+                        if(maxBitrateRequirements == null)
+                            log.debug("null virtual-link-profile max-bitrate-requirements, not inserted in value field.");
+                        else {
+                            String root = maxBitrateRequirements.getRoot();
+                            if(root == null)
+                                log.debug("null virtual-link-profile max-bitrate-requirements root, " +
+                                        "not inserted in value field.");
+                            else {
+                                if(!value.isEmpty())
+                                    value = value + ", ";
+
+                                value = value + "max-bitrate-requirements -> root: " + root;
+                            }
+                        }
+
+                        LinkBitrateRequirements minBitrateRequirements =
+                                virtualLinkProfileItem.getMinBitrateRequirements();
+                        if(minBitrateRequirements == null)
+                            log.debug("null virtual-link-profile min-bitrate-requirements, not inserted in value field.");
+                        else {
+                            String root = minBitrateRequirements.getRoot();
+                            if(root == null)
+                                log.debug("null virtual-link-profile min-bitrate-requirements root, " +
+                                        "not inserted in value field.");
+                            else {
+                                if(!value.isEmpty())
+                                    value = value + ", ";
+
+                                value = value + "min-bitrate-requirements -> root: " + root;
+                            }
+                        }
+
+                        ServiceSpecCharacteristicValue vlpiSscv = new ServiceSpecCharacteristicValue()
+                                .value(new Any().alias("virtual-link-profile " + virtualLinkProfileItemId)
+                                        .value(value))
+                                .valueType("virtualLinkProfileItemId");
+                        sscv.add(vlpiSscv);
+                    }
+                }
+
+                List<NsdNsinstantiationlevel> nsInstantiationlevels = df.getNsInstantiationLevel();
+                if(nsInstantiationlevels == null)
+                    log.debug("null ns-instantiation-level list, skipping values.");
+                else {
+                    for(NsdNsinstantiationlevel nsInstantiationlevel : nsInstantiationlevels) {
+
+                        String nsInstantiationlevelId = nsInstantiationlevel.getId();
+                        if(nsInstantiationlevelId == null) {
+                            log.debug("null ns-instantiation-level item id, skipping value.");
+                            continue;
+                        }
+
+                        String value = "";
+
+                        String description = nsInstantiationlevel.getDescription();
+                        if(description == null)
+                            log.debug("null ns-instantiation-level description, not inserted in value field.");
+                        else
+                            value = value + "description: " + description;
+
+                        List<NsdVnftolevelmapping> vnfToLevelMapping = nsInstantiationlevel.getVnfToLevelMapping();
+                        if(vnfToLevelMapping == null)
+                            log.debug("null ns-instantiation-level vnf-to-level-mapping, not inserted in value field.");
+                        else {
+                            List<String> valueLst = new ArrayList<>();
+                            for(NsdVnftolevelmapping vnftolevelmappingItem : vnfToLevelMapping) {
+                                String tmp = "";
+
+                                String vnfProfileId = vnftolevelmappingItem.getVnfProfileId();
+                                if(vnfProfileId == null)
+                                    log.debug("null ns-instantiation-level vnf-to-level-mapping vnf-profile-id, " +
+                                            "not inserted in value field.");
+                                else
+                                    tmp = tmp + "vnf-profile-id: " + vnfProfileId;
+
+                                String numberOfInstances = vnftolevelmappingItem.getNumberOfInstances();
+                                if(numberOfInstances == null)
+                                    log.debug("null ns-instantiation-level vnf-to-level-mapping number-of-instances, " +
+                                            "not inserted in value field.");
+                                else {
+                                    if(!tmp.isEmpty())
+                                        tmp = tmp + ", ";
+
+                                    tmp = tmp + "number-of-instances: " + numberOfInstances;
+                                }
+
+                                valueLst.add("( " + tmp + " )");
+                            }
+
+                            if(!value.isEmpty())
+                                value = value + ", ";
+
+                            value = value + "vnf-to-level-mapping: " + valueLst.toString();
+                        }
+
+                        List<NsdNstolevelmapping> nsdNstolevelmappings = nsInstantiationlevel.getNsToLevelMapping();
+                        if(nsdNstolevelmappings == null)
+                            log.debug("null ns-instantiation-level ns-to-level-mapping, not inserted in value field.");
+                        else {
+                            List<String> valueLst = new ArrayList<>();
+                            for(NsdNstolevelmapping nsdNstolevelmapping : nsdNstolevelmappings) {
+                                String tmp = "";
+
+                                String nsProfileId = nsdNstolevelmapping.getNsProfileId();
+                                if(nsProfileId == null)
+                                    log.debug("null ns-instantiation-level ns-to-level-mapping ns-profile-id, " +
+                                            "not inserted in value field.");
+                                else
+                                    tmp = tmp + "ns-profile-id: " + nsProfileId;
+
+                                String numberOfInstances = nsdNstolevelmapping.getNumberOfInstances();
+                                if(numberOfInstances == null)
+                                    log.debug("null ns-instantiation-level ns-to-level-mapping number-of-instances, " +
+                                            "not inserted in value field.");
+                                else {
+                                    if(!tmp.isEmpty())
+                                        tmp = tmp + ", ";
+
+                                    tmp = tmp + "number-of-instances: " + numberOfInstances;
+                                }
+
+                                valueLst.add("( " + tmp + " )");
+                            }
+
+                            if(!value.isEmpty())
+                                value = value + ", ";
+
+                            value = value + "ns-to-level-mapping: " + valueLst.toString();
+                        }
+
+                        ServiceSpecCharacteristicValue nilSscv = new ServiceSpecCharacteristicValue()
+                                .value(new Any().alias("ns-instantiation-level " + nsInstantiationlevelId)
+                                        .value(value))
+                                .valueType("NsdNsinstantiationlevel");
+                        sscv.add(nilSscv);
+                    }
+                }
+
+                sscDf.setServiceSpecCharacteristicValue(sscv);
+
+                serviceSpecCharacteristics.add(sscDf);
+            }
+        }
+
+        ssc.setServiceSpecCharacteristic(serviceSpecCharacteristics);
+
+        return ssc;
+    }
+
+    public ServiceCandidateCreate buildNsdServiceCandidate(String nsdId, ServiceSpecification ss) {
+        return new ServiceCandidateCreate()
+                .name("nsd:" + nsdId)
+                .lastUpdate(OffsetDateTime.ofInstant(Instant.now(), ZoneId.of("UTC")))
+                .serviceSpecification(new ServiceSpecificationRef()
+                        .id(ss.getId())
+                        .href(ss.getHref())
+                        .name("nsd specification: " + nsdId));
     }
 }

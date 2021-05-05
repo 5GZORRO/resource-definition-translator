@@ -7,12 +7,15 @@ import io.swagger.annotations.ApiResponses;
 import it.nextworks.sol006_tmf_translator.information_models.commons.Pair;
 import it.nextworks.sol006_tmf_translator.information_models.resource.ResourceCandidate;
 import it.nextworks.sol006_tmf_translator.information_models.resource.ResourceSpecification;
+import it.nextworks.sol006_tmf_translator.information_models.service.ServiceCandidate;
+import it.nextworks.sol006_tmf_translator.information_models.service.ServiceSpecification;
 import it.nextworks.sol006_tmf_translator.information_models.sol006.Nsd;
 import it.nextworks.sol006_tmf_translator.information_models.sol006.Pnfd;
 import it.nextworks.sol006_tmf_translator.information_models.sol006.Vnfd;
 import it.nextworks.sol006_tmf_translator.interfaces.TranslatorInterface;
 import it.nextworks.sol006_tmf_translator.sol006_tmf_translator.commons.exception.CatalogException;
 import it.nextworks.sol006_tmf_translator.sol006_tmf_translator.commons.exception.DescriptorAlreadyTranslatedException;
+import it.nextworks.sol006_tmf_translator.sol006_tmf_translator.commons.exception.MissingEntityOnCatalogException;
 import it.nextworks.sol006_tmf_translator.sol006_tmf_translator.services.TranslationService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -169,8 +172,21 @@ public class TranslatorController implements TranslatorInterface {
         else
             log.info("Web-Server: received request to translate & post nsd with id " + nsdId + ".");
 
+        Pair<ServiceCandidate, ServiceSpecification> translation;
+        try {
+            translation = translationService.translateNsd(nsd);
+        } catch (CatalogException | IOException e) {
+            String msg = e.getMessage();
+            log.error("Web-Server: " + msg);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new ErrMsg(msg));
+        } catch (DescriptorAlreadyTranslatedException | MissingEntityOnCatalogException e) {
+            String msg = e.getMessage();
+            log.info("Web-Server: " + msg);
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ErrMsg(msg));
+        }
+
         log.info("Web-Server: nsd " + nsdId + " translated & posted.");
 
-        return ResponseEntity.status(HttpStatus.CREATED).body(null);
+        return ResponseEntity.status(HttpStatus.CREATED).body(translation);
     }
 }

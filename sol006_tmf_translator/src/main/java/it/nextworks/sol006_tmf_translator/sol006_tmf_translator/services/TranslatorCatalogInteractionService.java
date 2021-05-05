@@ -3,8 +3,11 @@ package it.nextworks.sol006_tmf_translator.sol006_tmf_translator.services;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import it.nextworks.sol006_tmf_translator.information_models.commons.ResourceSpecificationRef;
+import it.nextworks.sol006_tmf_translator.information_models.commons.ServiceSpecificationRef;
 import it.nextworks.sol006_tmf_translator.information_models.resource.ResourceCandidate;
 import it.nextworks.sol006_tmf_translator.information_models.resource.ResourceSpecification;
+import it.nextworks.sol006_tmf_translator.information_models.service.ServiceCandidate;
+import it.nextworks.sol006_tmf_translator.information_models.service.ServiceSpecification;
 import it.nextworks.sol006_tmf_translator.sol006_tmf_translator.commons.config.CustomOffsetDateTimeSerializer;
 import it.nextworks.sol006_tmf_translator.sol006_tmf_translator.commons.exception.CatalogException;
 import it.nextworks.sol006_tmf_translator.sol006_tmf_translator.commons.exception.MissingEntityOnCatalogException;
@@ -130,6 +133,49 @@ public class TranslatorCatalogInteractionService {
         }
 
         return rsr;
+    }
+
+    public ServiceSpecificationRef isServicePresent(String serviceCandidateCatalogId, String serviceSpecificationCatalogId)
+            throws CatalogException, IOException, MissingEntityOnCatalogException, ResourceMismatchException {
+
+        log.info("Checking if Service Candidate " + serviceCandidateCatalogId + " exist in the Offer Catalog.");
+
+        HttpEntity scEntity;
+        try {
+            scEntity = getFromCatalog("/serviceCatalogManagement/v4/serviceCandidate/", serviceCandidateCatalogId);
+        } catch (MissingEntityOnCatalogException e) {
+            String msg = "Service Candidate " + serviceCandidateCatalogId + " not found in Offer Catalog.";
+            log.info(msg);
+            throw new MissingEntityOnCatalogException(msg);
+        }
+
+        ServiceCandidate sc = objectMapper.readValue(EntityUtils.toString(scEntity), ServiceCandidate.class);
+
+        log.info("Checking if Service Specification " + serviceSpecificationCatalogId + " exist in the Offer Catalog.");
+
+        HttpEntity ssEntity;
+        try {
+            ssEntity = getFromCatalog("/serviceCatalogManagement/v4/serviceSpecification/",
+                    serviceSpecificationCatalogId);
+        } catch (MissingEntityOnCatalogException e) {
+            String msg = "Service Specification " + serviceSpecificationCatalogId + " not found in Offer Catalog.";
+            log.info(msg);
+            throw new MissingEntityOnCatalogException(msg);
+        }
+
+        ServiceSpecification ss = objectMapper.readValue(EntityUtils.toString(ssEntity), ServiceSpecification.class);
+
+        ServiceSpecificationRef ssr = sc.getServiceSpecification();
+        if(ssr == null)
+            throw new CatalogException("Null Service Specification Ref in Service Candidate: abort.");
+
+        if(!ssr.getHref().equals(ss.getHref()) || !ssr.getId().equals(ss.getId())) {
+            String msg = "Mismatch between Service Candidate and Service Specification: not coupled.";
+            log.info(msg);
+            throw new ResourceMismatchException(msg);
+        }
+
+        return ssr;
     }
 
     public HttpEntity post(String body, String requestPath) throws UnsupportedEncodingException, CatalogException {
