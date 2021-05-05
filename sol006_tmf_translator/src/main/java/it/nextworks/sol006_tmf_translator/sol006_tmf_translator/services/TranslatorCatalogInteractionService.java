@@ -122,8 +122,11 @@ public class TranslatorCatalogInteractionService {
                 ResourceSpecification[].class)).get(0);
 
         ResourceSpecificationRef rsr = rc.getResourceSpecification();
-        if(rsr == null)
-            throw new CatalogException("Null Resource Specification Ref in Resource Candidate: abort.");
+        if(rsr == null) {
+            String msg = "Null Resource Specification Ref in Resource Candidate: abort.";
+            log.info(msg);
+            throw new CatalogException(msg);
+        }
 
         if(!rsr.getHref().equals(rs.getHref()) || !rsr.getId().equals(rs.getId())) {
             String msg = "Mismatch between Resource Candidate and Resource Specification: " +
@@ -166,8 +169,11 @@ public class TranslatorCatalogInteractionService {
         ServiceSpecification ss = objectMapper.readValue(EntityUtils.toString(ssEntity), ServiceSpecification.class);
 
         ServiceSpecificationRef ssr = sc.getServiceSpecification();
-        if(ssr == null)
-            throw new CatalogException("Null Service Specification Ref in Service Candidate: abort.");
+        if(ssr == null) {
+            String msg = "Null Service Specification Ref in Service Candidate: abort.";
+            log.info(msg);
+            throw new CatalogException(msg);
+        }
 
         if(!ssr.getHref().equals(ss.getHref()) || !ssr.getId().equals(ss.getId())) {
             String msg = "Mismatch between Service Candidate and Service Specification: not coupled.";

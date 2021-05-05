@@ -81,14 +81,14 @@ public class TranslatorController implements TranslatorInterface {
         Pair<ResourceCandidate, ResourceSpecification> translation;
         try {
             translation = translationService.translateVnfd(vnfd);
-        } catch (IOException | CatalogException e) {
+        } catch (IOException e) {
             String msg = e.getMessage();
             log.error("Web-Server: " + msg);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new ErrMsg(msg));
+        } catch (CatalogException e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new ErrMsg(e.getMessage()));
         } catch (DescriptorAlreadyTranslatedException e) {
-            String msg = e.getMessage();
-            log.info("Web-Server: " + msg);
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ErrMsg(msg));
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ErrMsg(e.getMessage()));
         }
 
         log.info("Web-Server: vnfd " + vnfdId + " translated & posted.");
@@ -128,14 +128,14 @@ public class TranslatorController implements TranslatorInterface {
         Pair<ResourceCandidate, ResourceSpecification> translation;
         try {
             translation = translationService.translatePnfd(pnfd);
-        } catch (IOException | CatalogException e) {
+        } catch (IOException e) {
             String msg = e.getMessage();
             log.error("Web-Server: " + msg);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new ErrMsg(msg));
+        } catch (CatalogException e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new ErrMsg(e.getMessage()));
         } catch (DescriptorAlreadyTranslatedException e) {
-            String msg = e.getMessage();
-            log.info("Web-Server: " + msg);
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ErrMsg(msg));
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ErrMsg(e.getMessage()));
         }
 
         log.info("Web-Server: pnfd " + pnfdId + " translated & posted.");
@@ -175,14 +175,14 @@ public class TranslatorController implements TranslatorInterface {
         Pair<ServiceCandidate, ServiceSpecification> translation;
         try {
             translation = translationService.translateNsd(nsd);
-        } catch (CatalogException | IOException e) {
+        } catch (IOException e) {
             String msg = e.getMessage();
             log.error("Web-Server: " + msg);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new ErrMsg(msg));
+        } catch (CatalogException e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new ErrMsg(e.getMessage()));
         } catch (DescriptorAlreadyTranslatedException | MissingEntityOnCatalogException e) {
-            String msg = e.getMessage();
-            log.info("Web-Server: " + msg);
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ErrMsg(msg));
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ErrMsg(e.getMessage()));
         }
 
         log.info("Web-Server: nsd " + nsdId + " translated & posted.");

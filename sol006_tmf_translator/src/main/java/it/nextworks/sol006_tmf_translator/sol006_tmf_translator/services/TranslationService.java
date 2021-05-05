@@ -355,7 +355,7 @@ public class TranslationService {
     }
 
     public Pair<ServiceCandidate, ServiceSpecification> translateNsd(Nsd nsd)
-            throws CatalogException, IOException, DescriptorAlreadyTranslatedException,
+            throws IOException, CatalogException, DescriptorAlreadyTranslatedException,
             MissingEntityOnCatalogException {
 
         String nsdId = nsd.getId();
