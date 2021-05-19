@@ -2,6 +2,9 @@ package it.nextworks.sol006_tmf_translator.sol006_tmf_translator.services;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.module.SimpleModule;
+import it.nextworks.nfvmano.libs.descriptors.sol006.Nsd;
+import it.nextworks.nfvmano.libs.descriptors.sol006.Pnfd;
+import it.nextworks.nfvmano.libs.descriptors.sol006.Vnfd;
 import it.nextworks.sol006_tmf_translator.information_models.commons.Pair;
 import it.nextworks.sol006_tmf_translator.information_models.commons.ResourceSpecificationRef;
 import it.nextworks.sol006_tmf_translator.information_models.commons.ServiceSpecificationRef;
@@ -14,9 +17,6 @@ import it.nextworks.sol006_tmf_translator.information_models.service.ServiceCand
 import it.nextworks.sol006_tmf_translator.information_models.service.ServiceCandidateCreate;
 import it.nextworks.sol006_tmf_translator.information_models.service.ServiceSpecification;
 import it.nextworks.sol006_tmf_translator.information_models.service.ServiceSpecificationCreate;
-import it.nextworks.sol006_tmf_translator.information_models.sol006.Nsd;
-import it.nextworks.sol006_tmf_translator.information_models.sol006.Pnfd;
-import it.nextworks.sol006_tmf_translator.information_models.sol006.Vnfd;
 import it.nextworks.sol006_tmf_translator.sol006_tmf_translator.commons.config.CustomOffsetDateTimeSerializer;
 import it.nextworks.sol006_tmf_translator.sol006_tmf_translator.commons.exception.*;
 import org.apache.http.HttpEntity;

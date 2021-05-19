@@ -1,8 +1,8 @@
 package it.nextworks.sol006_tmf_translator.interfaces;
 
-import it.nextworks.sol006_tmf_translator.information_models.sol006.Nsd;
-import it.nextworks.sol006_tmf_translator.information_models.sol006.Pnfd;
-import it.nextworks.sol006_tmf_translator.information_models.sol006.Vnfd;
+import it.nextworks.nfvmano.libs.descriptors.sol006.Nsd;
+import it.nextworks.nfvmano.libs.descriptors.sol006.Pnfd;
+import it.nextworks.nfvmano.libs.descriptors.sol006.Vnfd;
 import org.springframework.http.ResponseEntity;
 
 public interface TranslatorInterface {
