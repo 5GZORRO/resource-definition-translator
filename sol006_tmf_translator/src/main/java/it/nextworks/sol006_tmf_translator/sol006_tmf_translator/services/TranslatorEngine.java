@@ -1,12 +1,10 @@
 package it.nextworks.sol006_tmf_translator.sol006_tmf_translator.services;
 
 import it.nextworks.nfvmano.libs.common.enums.*;
-import it.nextworks.sol006_tmf_translator.information_models.commons.Any;
-import it.nextworks.sol006_tmf_translator.information_models.commons.ResourceSpecificationRef;
-import it.nextworks.sol006_tmf_translator.information_models.commons.ServiceSpecificationRef;
-import it.nextworks.sol006_tmf_translator.information_models.resource.*;
-import it.nextworks.sol006_tmf_translator.information_models.service.*;
 import it.nextworks.nfvmano.libs.descriptors.sol006.*;
+import it.nextworks.tmf_offering_catalog.information_models.common.*;
+import it.nextworks.tmf_offering_catalog.information_models.resource.*;
+import it.nextworks.tmf_offering_catalog.information_models.service.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
