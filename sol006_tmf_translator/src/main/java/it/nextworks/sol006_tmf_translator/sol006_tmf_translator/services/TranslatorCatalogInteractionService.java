@@ -2,6 +2,7 @@ package it.nextworks.sol006_tmf_translator.sol006_tmf_translator.services;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.module.SimpleModule;
+import it.nextworks.sol006_tmf_translator.information_models.commons.Pair;
 import it.nextworks.sol006_tmf_translator.sol006_tmf_translator.commons.config.CustomOffsetDateTimeSerializer;
 import it.nextworks.sol006_tmf_translator.sol006_tmf_translator.commons.exception.CatalogException;
 import it.nextworks.sol006_tmf_translator.sol006_tmf_translator.commons.exception.MissingEntityOnCatalogException;
@@ -89,7 +90,8 @@ public class TranslatorCatalogInteractionService {
         return response.getEntity();
     }
 
-    public ResourceSpecificationRef isResourcePresent(String resourceCandidateCatalogId, String resourceSpecificationCatalogId)
+    public Pair<ResourceCandidate, ResourceSpecification>
+    isResourcePresent(String resourceCandidateCatalogId, String resourceSpecificationCatalogId)
             throws IOException, CatalogException, MissingEntityOnCatalogException, ResourceMismatchException {
 
         log.info("Checking if Resource Candidate " + resourceCandidateCatalogId + " exist in the Offer Catalog.");
@@ -135,10 +137,11 @@ public class TranslatorCatalogInteractionService {
             throw new ResourceMismatchException(msg);
         }
 
-        return rsr;
+        return new Pair<>(rc, rs);
     }
 
-    public ServiceSpecificationRef isServicePresent(String serviceCandidateCatalogId, String serviceSpecificationCatalogId)
+    public Pair<ServiceCandidate, ServiceSpecification>
+    isServicePresent(String serviceCandidateCatalogId, String serviceSpecificationCatalogId)
             throws CatalogException, IOException, MissingEntityOnCatalogException, ResourceMismatchException {
 
         log.info("Checking if Service Candidate " + serviceCandidateCatalogId + " exist in the Offer Catalog.");
@@ -181,7 +184,7 @@ public class TranslatorCatalogInteractionService {
             throw new ResourceMismatchException(msg);
         }
 
-        return ssr;
+        return new Pair<>(sc, ss);
     }
 
     public HttpEntity post(String body, String requestPath) throws UnsupportedEncodingException, CatalogException {

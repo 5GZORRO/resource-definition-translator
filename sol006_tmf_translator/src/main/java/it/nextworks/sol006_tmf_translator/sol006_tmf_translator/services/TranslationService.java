@@ -8,6 +8,7 @@ import it.nextworks.nfvmano.libs.descriptors.sol006.Vnfd;
 import it.nextworks.sol006_tmf_translator.information_models.commons.Pair;
 import it.nextworks.sol006_tmf_translator.information_models.persistence.MappingInfo;
 import it.nextworks.sol006_tmf_translator.sol006_tmf_translator.commons.config.CustomOffsetDateTimeSerializer;
+import it.nextworks.sol006_tmf_translator.sol006_tmf_translator.commons.enums.Kind;
 import it.nextworks.sol006_tmf_translator.sol006_tmf_translator.commons.exception.*;
 import it.nextworks.tmf_offering_catalog.information_models.common.ResourceSpecificationRef;
 import it.nextworks.tmf_offering_catalog.information_models.common.ServiceSpecificationRef;
@@ -42,12 +43,15 @@ public class TranslationService {
 
     private final TranslatorCatalogInteractionService translatorCatalogInteractionService;
 
+    private final TranslatorDescSourceInteractionService translatorDescSourceInteractionService;
+
     private final MappingInfoService mappingInfoService;
 
     @Autowired
     public TranslationService(ObjectMapper objectMapper,
                               TranslatorEngine translatorEngine,
                               TranslatorCatalogInteractionService translatorCatalogInteractionService,
+                              TranslatorDescSourceInteractionService translatorDescSourceInteractionService,
                               MappingInfoService mappingInfoService) {
         this.objectMapper = objectMapper;
         SimpleModule module = new SimpleModule();
@@ -56,6 +60,7 @@ public class TranslationService {
 
         this.translatorEngine = translatorEngine;
         this.translatorCatalogInteractionService = translatorCatalogInteractionService;
+        this.translatorDescSourceInteractionService = translatorDescSourceInteractionService;
         this.mappingInfoService = mappingInfoService;
     }
 
@@ -86,8 +91,7 @@ public class TranslationService {
         return new Pair<>(rc, rs);
     }
 
-    public Pair<ResourceCandidate, ResourceSpecification> translateVnfd(Vnfd vnfd)
-            throws IOException, CatalogException, DescriptorAlreadyTranslatedException {
+    public Pair<ResourceCandidate, ResourceSpecification> translateVnfd(Vnfd vnfd) throws IOException, CatalogException {
 
         String vnfdId = vnfd.getId();
 
@@ -100,8 +104,9 @@ public class TranslationService {
         }
 
         if(found) {
+            Pair<ResourceCandidate, ResourceSpecification> pair = null;
             try {
-                translatorCatalogInteractionService
+                pair = translatorCatalogInteractionService
                         .isResourcePresent(mappingInfo.getCandidateCatalogId(),
                                 mappingInfo.getSpecificationCatalogId());
             } catch (MissingEntityOnCatalogException | ResourceMismatchException e) {
@@ -109,9 +114,8 @@ public class TranslationService {
             }
 
             if(found) {
-                String msg = "Vnfd " + vnfdId + " already translated and correctly posted on Offer Catalog.";
-                log.info(msg);
-                throw new DescriptorAlreadyTranslatedException(msg);
+                log.info("Vnfd " + vnfdId + " already translated and correctly posted on Offer Catalog.");
+                return pair;
             }
             else {
                 try {
@@ -153,8 +157,7 @@ public class TranslationService {
         return new Pair<>(rc, rs);
     }
 
-    public Pair<ResourceCandidate, ResourceSpecification> translatePnfd(Pnfd pnfd)
-            throws IOException, CatalogException, DescriptorAlreadyTranslatedException {
+    public Pair<ResourceCandidate, ResourceSpecification> translatePnfd(Pnfd pnfd) throws IOException, CatalogException {
 
         String pnfdId = pnfd.getId();
 
@@ -167,8 +170,9 @@ public class TranslationService {
         }
 
         if(found) {
+            Pair<ResourceCandidate, ResourceSpecification> pair = null;
             try {
-                translatorCatalogInteractionService
+                pair = translatorCatalogInteractionService
                         .isResourcePresent(mappingInfo.getCandidateCatalogId(),
                                 mappingInfo.getSpecificationCatalogId());
             } catch (MissingEntityOnCatalogException | ResourceMismatchException e) {
@@ -176,9 +180,8 @@ public class TranslationService {
             }
 
             if(found) {
-                String msg = "Pnfd " + pnfdId + " already translated and correctly posted on Offer Catalog.";
-                log.info(msg);
-                throw new DescriptorAlreadyTranslatedException(msg);
+                log.info("Pnfd " + pnfdId + " already translated and correctly posted on Offer Catalog.");
+                return pair;
             }
             else {
                 try {
@@ -194,8 +197,42 @@ public class TranslationService {
             return translateAndPostPnfd(pnfd);
     }
 
-    private List<ResourceSpecificationRef> areResourcesPresent(List<String> resources)
-            throws IOException, CatalogException, MissingEntityOnCatalogException {
+    private ResourceSpecificationRef getFromSourceAndTranslateResource(Kind kind, String resource)
+            throws MissingEntityOnSourceException, SourceException, IOException, CatalogException {
+
+        HttpEntity httpEntity = translatorDescSourceInteractionService.getFromSource(kind, resource);
+
+        switch(kind) {
+            case VNFD:
+                Vnfd vnfd = objectMapper.readValue(EntityUtils.toString(httpEntity), Vnfd.class);
+                ResourceSpecificationRef vnfdRsr = translateVnfd(vnfd).getFirst().getResourceSpecification();
+
+                log.info("Resource " + resource + " translated & posted.");
+                return vnfdRsr;
+
+            case PNFD:
+                Pnfd pnfd = objectMapper.readValue(EntityUtils.toString(httpEntity), Pnfd.class);
+                ResourceSpecificationRef pnfdRsr = translatePnfd(pnfd).getFirst().getResourceSpecification();
+
+                log.info("Resource " + resource + " translated & posted.");
+                return pnfdRsr;
+
+            default:
+                return null;
+        }
+    }
+
+    private ServiceSpecificationRef getFromSourceAndTranslateService(String service)
+            throws MissingEntityOnSourceException, SourceException, IOException,
+            CatalogException, MissingEntityOnCatalogException {
+
+        HttpEntity httpEntity = translatorDescSourceInteractionService.getFromSource(Kind.NSD, service);
+        Nsd nsd = objectMapper.readValue(EntityUtils.toString(httpEntity), Nsd.class);
+        return translateNsd(nsd).getFirst().getServiceSpecification();
+    }
+
+    private List<ResourceSpecificationRef> areResourcesPresent(Kind kind, List<String> resources)
+            throws IOException, CatalogException, MissingEntityOnSourceException, SourceException {
 
         List<ResourceSpecificationRef> refs = new ArrayList<>();
         for(String resource : resources) {
@@ -213,7 +250,7 @@ public class TranslationService {
                 try {
                     ref = translatorCatalogInteractionService
                             .isResourcePresent(mappingInfo.getCandidateCatalogId(),
-                                    mappingInfo.getSpecificationCatalogId());
+                                    mappingInfo.getSpecificationCatalogId()).getFirst().getResourceSpecification();
                 } catch (MissingEntityOnCatalogException | ResourceMismatchException e) {
                     found = false;
                 }
@@ -224,7 +261,7 @@ public class TranslationService {
                 }
                 else {
                     log.info("Resource " +  resource + " not exist in Offer Catalog, trying to retrieve from " +
-                            "5G Catalog in order to translate.");
+                            "descriptors source in order to translate.");
 
                     try {
                         mappingInfoService.delete(resource);
@@ -232,22 +269,32 @@ public class TranslationService {
                         log.info("Entry for " + resource + " that should exists in DB, not found.");
                     }
 
-                    // TODO try to retrieve from 5G Catalog and the translate instead return
+                    ResourceSpecificationRef newRef;
+                    try {
+                        newRef = getFromSourceAndTranslateResource(kind, resource);
+                    } catch (MissingEntityOnSourceException e) {
+                        String msg = "Resource " + resource + " missing in descriptors source, abort.";
+                        log.info(msg);
+                        throw new MissingEntityOnSourceException(msg);
+                    }
 
-                    String msg = "Resource " + resource + " missing on 5G Catalog, abort.";
-                    log.info(msg);
-                    throw new MissingEntityOnCatalogException(msg);
+                    refs.add(newRef);
                 }
             }
             else {
                 log.info("Resource " +  resource + " not translated, trying to retrieve from " +
                         "5G Catalog in order to translate.");
 
-                // TODO try to retrieve from 5G Catalog and the translate instead return
+                ResourceSpecificationRef newRef;
+                try {
+                    newRef = getFromSourceAndTranslateResource(kind, resource);
+                } catch (MissingEntityOnSourceException e) {
+                    String msg = "Resource " + resource + " missing in descriptors source, abort.";
+                    log.info(msg);
+                    throw new MissingEntityOnSourceException(msg);
+                }
 
-                String msg = "Resource " + resource + " missing on 5G Catalog, abort.";
-                log.info(msg);
-                throw new MissingEntityOnCatalogException(msg);
+                refs.add(newRef);
             }
         }
 
@@ -255,7 +302,8 @@ public class TranslationService {
     }
 
     private List<ServiceSpecificationRef> areServicesPresent(List<String> nsdIds)
-            throws CatalogException, IOException, MissingEntityOnCatalogException {
+            throws CatalogException, IOException, MissingEntityOnCatalogException,
+            SourceException, MissingEntityOnSourceException {
 
         List<ServiceSpecificationRef> refs = new ArrayList<>();
         for(String nsdId : nsdIds) {
@@ -273,7 +321,7 @@ public class TranslationService {
                 try {
                     ref = translatorCatalogInteractionService
                             .isServicePresent(mappingInfo.getCandidateCatalogId(),
-                                    mappingInfo.getSpecificationCatalogId());
+                                    mappingInfo.getSpecificationCatalogId()).getFirst().getServiceSpecification();
                 } catch (MissingEntityOnCatalogException | ResourceMismatchException e) {
                     found = false;
                 }
@@ -289,22 +337,32 @@ public class TranslationService {
                         log.info("Entry for " + nsdId + " that should exists in DB, not found.");
                     }
 
-                    // TODO try to retrieve from 5G Catalog and translate instead return
+                    ServiceSpecificationRef newRef;
+                    try {
+                        newRef = getFromSourceAndTranslateService(nsdId);
+                    } catch (MissingEntityOnSourceException e) {
+                        String msg = "Service " + nsdId + " missing on 5G Catalog, abort.";
+                        log.info(msg);
+                        throw new MissingEntityOnSourceException(msg);
+                    }
 
-                    String msg = "Service " + nsdId + " missing on 5G Catalog, abort.";
-                    log.info(msg);
-                    throw new MissingEntityOnCatalogException(msg);
+                    refs.add(newRef);
                 }
             }
             else {
                 log.info("Service " + nsdId + " not translated, trying to retrieve from " +
                         "5G Catalog in order to translate.");
 
-                // TODO try to retrieve from 5G Catalog and translate instead return
+                ServiceSpecificationRef newRef;
+                try {
+                    newRef = getFromSourceAndTranslateService(nsdId);
+                } catch (MissingEntityOnSourceException e) {
+                    String msg = "Service " + nsdId + " missing on 5G Catalog, abort.";
+                    log.info(msg);
+                    throw new MissingEntityOnSourceException(msg);
+                }
 
-                String msg = "Service " + nsdId + " missing on 5G Catalog, abort.";
-                log.info(msg);
-                throw new MissingEntityOnCatalogException(msg);
+                refs.add(newRef);
             }
         }
 
@@ -312,17 +370,18 @@ public class TranslationService {
     }
 
     private Pair<ServiceCandidate, ServiceSpecification> translateAndPostNsd(Nsd nsd)
-            throws CatalogException, IOException, MissingEntityOnCatalogException {
+            throws CatalogException, IOException, MissingEntityOnCatalogException,
+            MissingEntityOnSourceException, SourceException {
 
         List<String> vnfds = nsd.getVnfdId();
         List<ResourceSpecificationRef> vnfdRefs = new ArrayList<>();
         if(vnfds != null)
-            vnfdRefs = areResourcesPresent(vnfds);
+            vnfdRefs = areResourcesPresent(Kind.VNFD, vnfds);
 
         List<String> pnfds = nsd.getPnfdId();
         List<ResourceSpecificationRef> pnfdRefs = new ArrayList<>();
         if(pnfds != null)
-            pnfdRefs = areResourcesPresent(pnfds);
+            pnfdRefs = areResourcesPresent(Kind.PNFD, pnfds);
 
         List<String> nsdIds = nsd.getNestedNsdId();
         List<ServiceSpecificationRef> nsdRefs = new ArrayList<>();
@@ -355,8 +414,8 @@ public class TranslationService {
     }
 
     public Pair<ServiceCandidate, ServiceSpecification> translateNsd(Nsd nsd)
-            throws IOException, CatalogException, DescriptorAlreadyTranslatedException,
-            MissingEntityOnCatalogException {
+            throws IOException, CatalogException, MissingEntityOnCatalogException,
+            MissingEntityOnSourceException, SourceException {
 
         String nsdId = nsd.getId();
 
@@ -369,17 +428,17 @@ public class TranslationService {
         }
 
         if(found) {
+            Pair<ServiceCandidate, ServiceSpecification> pair = null;
             try {
-                translatorCatalogInteractionService
+                pair = translatorCatalogInteractionService
                         .isServicePresent(mappingInfo.getCandidateCatalogId(), mappingInfo.getSpecificationCatalogId());
             } catch (MissingEntityOnCatalogException | ResourceMismatchException e) {
                 found = false;
             }
 
             if(found) {
-                String msg = "Nsd " + nsdId + " already translated and correctly posted in Offer Catalog.";
-                log.info(msg);
-                throw new DescriptorAlreadyTranslatedException(msg);
+                log.info("Nsd " + nsdId + " already translated and correctly posted in Offer Catalog.");
+                return pair;
             }
             else {
                 try {

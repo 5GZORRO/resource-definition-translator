@@ -9,9 +9,7 @@ import it.nextworks.nfvmano.libs.descriptors.sol006.Pnfd;
 import it.nextworks.nfvmano.libs.descriptors.sol006.Vnfd;
 import it.nextworks.sol006_tmf_translator.information_models.commons.Pair;
 import it.nextworks.sol006_tmf_translator.interfaces.TranslatorInterface;
-import it.nextworks.sol006_tmf_translator.sol006_tmf_translator.commons.exception.CatalogException;
-import it.nextworks.sol006_tmf_translator.sol006_tmf_translator.commons.exception.DescriptorAlreadyTranslatedException;
-import it.nextworks.sol006_tmf_translator.sol006_tmf_translator.commons.exception.MissingEntityOnCatalogException;
+import it.nextworks.sol006_tmf_translator.sol006_tmf_translator.commons.exception.*;
 import it.nextworks.sol006_tmf_translator.sol006_tmf_translator.services.TranslationService;
 import it.nextworks.tmf_offering_catalog.information_models.resource.ResourceCandidate;
 import it.nextworks.tmf_offering_catalog.information_models.resource.ResourceSpecification;
@@ -87,8 +85,6 @@ public class TranslatorController implements TranslatorInterface {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new ErrMsg(msg));
         } catch (CatalogException e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new ErrMsg(e.getMessage()));
-        } catch (DescriptorAlreadyTranslatedException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ErrMsg(e.getMessage()));
         }
 
         log.info("Web-Server: vnfd " + vnfdId + " translated & posted.");
@@ -134,8 +130,6 @@ public class TranslatorController implements TranslatorInterface {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new ErrMsg(msg));
         } catch (CatalogException e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new ErrMsg(e.getMessage()));
-        } catch (DescriptorAlreadyTranslatedException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ErrMsg(e.getMessage()));
         }
 
         log.info("Web-Server: pnfd " + pnfdId + " translated & posted.");
@@ -179,9 +173,9 @@ public class TranslatorController implements TranslatorInterface {
             String msg = e.getMessage();
             log.error("Web-Server: " + msg);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new ErrMsg(msg));
-        } catch (CatalogException e) {
+        } catch (CatalogException | SourceException e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new ErrMsg(e.getMessage()));
-        } catch (DescriptorAlreadyTranslatedException | MissingEntityOnCatalogException e) {
+        } catch (MissingEntityOnCatalogException | MissingEntityOnSourceException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ErrMsg(e.getMessage()));
         }
 
