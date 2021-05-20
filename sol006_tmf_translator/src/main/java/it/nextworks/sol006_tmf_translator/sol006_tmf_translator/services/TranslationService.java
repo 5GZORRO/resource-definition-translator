@@ -88,6 +88,8 @@ public class TranslationService {
 
         mappingInfoService.save(new MappingInfo(vnfdId, rc.getId(), rs.getId()));
 
+        log.info("vnfd " + vnfdId + " translated & posted.");
+
         return new Pair<>(rc, rs);
     }
 
@@ -154,6 +156,8 @@ public class TranslationService {
 
         mappingInfoService.save(new MappingInfo(pnfdId, rc.getId(), rs.getId()));
 
+        log.info("pnfd " + pnfdId + " translated & posted.");
+
         return new Pair<>(rc, rs);
     }
 
@@ -205,17 +209,11 @@ public class TranslationService {
         switch(kind) {
             case VNFD:
                 Vnfd vnfd = objectMapper.readValue(EntityUtils.toString(httpEntity), Vnfd.class);
-                ResourceSpecificationRef vnfdRsr = translateVnfd(vnfd).getFirst().getResourceSpecification();
-
-                log.info("Resource " + resource + " translated & posted.");
-                return vnfdRsr;
+                return translateVnfd(vnfd).getFirst().getResourceSpecification();
 
             case PNFD:
                 Pnfd pnfd = objectMapper.readValue(EntityUtils.toString(httpEntity), Pnfd.class);
-                ResourceSpecificationRef pnfdRsr = translatePnfd(pnfd).getFirst().getResourceSpecification();
-
-                log.info("Resource " + resource + " translated & posted.");
-                return pnfdRsr;
+                return translatePnfd(pnfd).getFirst().getResourceSpecification();
 
             default:
                 return null;
@@ -409,6 +407,8 @@ public class TranslationService {
         ServiceCandidate sc = objectMapper.readValue(EntityUtils.toString(httpEntity), ServiceCandidate.class);
 
         mappingInfoService.save(new MappingInfo(nsdId, sc.getId(), ss.getId()));
+
+        log.info("nsd " + nsdId + " translated & posted.");
 
         return new Pair<>(sc, ss);
     }

@@ -1,5 +1,6 @@
 package it.nextworks.sol006_tmf_translator.sol006_tmf_translator.rest;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.swagger.annotations.ApiParam;
 import io.swagger.annotations.ApiResponse;
@@ -9,8 +10,10 @@ import it.nextworks.nfvmano.libs.descriptors.sol006.Pnfd;
 import it.nextworks.nfvmano.libs.descriptors.sol006.Vnfd;
 import it.nextworks.sol006_tmf_translator.information_models.commons.Pair;
 import it.nextworks.sol006_tmf_translator.interfaces.TranslatorInterface;
+import it.nextworks.sol006_tmf_translator.sol006_tmf_translator.commons.enums.Kind;
 import it.nextworks.sol006_tmf_translator.sol006_tmf_translator.commons.exception.*;
 import it.nextworks.sol006_tmf_translator.sol006_tmf_translator.services.TranslationService;
+import it.nextworks.sol006_tmf_translator.sol006_tmf_translator.services.TranslatorDescSourceInteractionService;
 import it.nextworks.tmf_offering_catalog.information_models.resource.ResourceCandidate;
 import it.nextworks.tmf_offering_catalog.information_models.resource.ResourceSpecification;
 import it.nextworks.tmf_offering_catalog.information_models.service.ServiceCandidate;
@@ -25,6 +28,7 @@ import org.springframework.web.bind.annotation.*;
 import javax.servlet.http.HttpServletRequest;
 import javax.validation.Valid;
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.util.UUID;
 
 @RestController
@@ -38,13 +42,17 @@ public class TranslatorController implements TranslatorInterface {
 
     private final TranslationService translationService;
 
+    private final TranslatorDescSourceInteractionService translatorDescSourceInteractionService;
+
     @Autowired
     public TranslatorController(ObjectMapper objectMapper,
                                 HttpServletRequest request,
-                                TranslationService translationService) {
+                                TranslationService translationService,
+                                TranslatorDescSourceInteractionService translatorDescSourceInteractionService) {
         this.objectMapper       = objectMapper;
         this.request            = request;
         this.translationService = translationService;
+        this.translatorDescSourceInteractionService = translatorDescSourceInteractionService;
     }
 
     @Override
@@ -62,7 +70,7 @@ public class TranslatorController implements TranslatorInterface {
     translateVnfd(@ApiParam(value = "The VNFD to be translated.", required = true) @Valid @RequestBody Vnfd vnfd) {
 
         if(vnfd == null) {
-            log.info("Web-Server: received a translation request with null vnfd.");
+            log.info("Received a translation request with null vnfd.");
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body(new ErrMsg("received a translation request with null vnfd."));
         }
@@ -71,23 +79,35 @@ public class TranslatorController implements TranslatorInterface {
         if(vnfdId == null) {
             vnfdId = UUID.randomUUID().toString();
             vnfd.setId(vnfdId);
-            log.info("Web-Server: received request to translate & post vnfd without id, generated: " + vnfdId + ".");
+            log.info("Received request to translate & post vnfd without id, generated: " + vnfdId + ".");
         }
         else
-            log.info("Web-Server: received request to translate & post vnfd with id " + vnfdId + ".");
+            log.info("Received request to translate & post vnfd with id " + vnfdId + ".");
 
         Pair<ResourceCandidate, ResourceSpecification> translation;
         try {
             translation = translationService.translateVnfd(vnfd);
         } catch (IOException e) {
             String msg = e.getMessage();
-            log.error("Web-Server: " + msg);
+            log.error(msg);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new ErrMsg(msg));
         } catch (CatalogException e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new ErrMsg(e.getMessage()));
         }
 
-        log.info("Web-Server: vnfd " + vnfdId + " translated & posted.");
+        try {
+            translatorDescSourceInteractionService.getFromSource(Kind.VNFD, vnfdId);
+        } catch (SourceException e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new ErrMsg(e.getMessage()));
+        } catch (MissingEntityOnSourceException e) {
+            log.info("Posting vnfd " + vnfdId + " to descriptors source.");
+            try {
+                translatorDescSourceInteractionService.postOnSource(Kind.VNFD, objectMapper.writeValueAsString(vnfd));
+                log.info("vnfd " + vnfdId + " posted on descriptors source.");
+            } catch (UnsupportedEncodingException | SourceException | JsonProcessingException ee) {
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new ErrMsg(ee.getMessage()));
+            }
+        }
 
         return ResponseEntity.status(HttpStatus.CREATED).body(translation);
     }
@@ -107,7 +127,7 @@ public class TranslatorController implements TranslatorInterface {
     translatePnfd(@ApiParam(value = "The PNFD to be translated.", required = true) @Valid @RequestBody Pnfd pnfd) {
 
         if(pnfd == null) {
-            log.info("Web-Server: received a translation request with null pnfd.");
+            log.info("Received a translation request with null pnfd.");
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body(new ErrMsg("received a translation request with null pnfd."));
         }
@@ -116,23 +136,35 @@ public class TranslatorController implements TranslatorInterface {
         if(pnfdId == null) {
             pnfdId = UUID.randomUUID().toString();
             pnfd.setId(pnfdId);
-            log.info("Web-Server: received request to translate & post pnfd without id, generated: " + pnfdId + ".");
+            log.info("Received request to translate & post pnfd without id, generated: " + pnfdId + ".");
         }
         else
-            log.info("Web-Server: received request to translate & post pnfd with id " + pnfdId + ".");
+            log.info("Received request to translate & post pnfd with id " + pnfdId + ".");
 
         Pair<ResourceCandidate, ResourceSpecification> translation;
         try {
             translation = translationService.translatePnfd(pnfd);
         } catch (IOException e) {
             String msg = e.getMessage();
-            log.error("Web-Server: " + msg);
+            log.error(msg);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new ErrMsg(msg));
         } catch (CatalogException e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new ErrMsg(e.getMessage()));
         }
 
-        log.info("Web-Server: pnfd " + pnfdId + " translated & posted.");
+        try {
+            translatorDescSourceInteractionService.getFromSource(Kind.PNFD, pnfdId);
+        } catch (SourceException e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new ErrMsg(e.getMessage()));
+        } catch (MissingEntityOnSourceException e) {
+            log.info("Posting pnfd " + pnfdId + " to descriptors source.");
+            try {
+                translatorDescSourceInteractionService.postOnSource(Kind.PNFD, objectMapper.writeValueAsString(pnfd));
+                log.info("pnfd " + pnfdId + " posted on descriptors source.");
+            } catch (UnsupportedEncodingException | SourceException | JsonProcessingException ee) {
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new ErrMsg(ee.getMessage()));
+            }
+        }
 
         return ResponseEntity.status(HttpStatus.CREATED).body(translation);
     }
@@ -152,7 +184,7 @@ public class TranslatorController implements TranslatorInterface {
     translateNsd(@ApiParam(value = "The NSD to be translated.", required = true) @Valid @RequestBody Nsd nsd) {
 
         if(nsd == null) {
-            log.info("Web-Server: received a translation request with null nsd.");
+            log.info("Received a translation request with null nsd.");
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body(new ErrMsg("received a translation request with null nsd."));
         }
@@ -161,17 +193,17 @@ public class TranslatorController implements TranslatorInterface {
         if(nsdId == null) {
             nsdId = UUID.randomUUID().toString();
             nsd.setId(nsdId);
-            log.info("Web-Server: received request to translate & post nsd without id, generated: " + nsdId + ".");
+            log.info("Received request to translate & post nsd without id, generated: " + nsdId + ".");
         }
         else
-            log.info("Web-Server: received request to translate & post nsd with id " + nsdId + ".");
+            log.info("Received request to translate & post nsd with id " + nsdId + ".");
 
         Pair<ServiceCandidate, ServiceSpecification> translation;
         try {
             translation = translationService.translateNsd(nsd);
         } catch (IOException e) {
             String msg = e.getMessage();
-            log.error("Web-Server: " + msg);
+            log.error(msg);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new ErrMsg(msg));
         } catch (CatalogException | SourceException e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new ErrMsg(e.getMessage()));
@@ -179,7 +211,19 @@ public class TranslatorController implements TranslatorInterface {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ErrMsg(e.getMessage()));
         }
 
-        log.info("Web-Server: nsd " + nsdId + " translated & posted.");
+        try {
+            translatorDescSourceInteractionService.getFromSource(Kind.NSD, nsdId);
+        } catch (SourceException e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new ErrMsg(e.getMessage()));
+        } catch (MissingEntityOnSourceException e) {
+            log.info("Posting nsd " + nsdId + " to descriptors source.");
+            try {
+                translatorDescSourceInteractionService.postOnSource(Kind.NSD, objectMapper.writeValueAsString(nsd));
+                log.info("nsd " + nsd + " posted on descriptors source.");
+            } catch (UnsupportedEncodingException | SourceException | JsonProcessingException ee) {
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new ErrMsg(ee.getMessage()));
+            }
+        }
 
         return ResponseEntity.status(HttpStatus.CREATED).body(translation);
     }
