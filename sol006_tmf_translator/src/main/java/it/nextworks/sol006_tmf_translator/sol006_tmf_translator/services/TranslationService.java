@@ -281,7 +281,7 @@ public class TranslationService {
             }
             else {
                 log.info("Resource " +  resource + " not translated, trying to retrieve from " +
-                        "5G Catalog in order to translate.");
+                        "descriptors source in order to translate.");
 
                 ResourceSpecificationRef newRef;
                 try {
@@ -339,7 +339,7 @@ public class TranslationService {
                     try {
                         newRef = getFromSourceAndTranslateService(nsdId);
                     } catch (MissingEntityOnSourceException e) {
-                        String msg = "Service " + nsdId + " missing on 5G Catalog, abort.";
+                        String msg = "Service " + nsdId + " missing on descriptors source, abort.";
                         log.info(msg);
                         throw new MissingEntityOnSourceException(msg);
                     }
@@ -349,13 +349,13 @@ public class TranslationService {
             }
             else {
                 log.info("Service " + nsdId + " not translated, trying to retrieve from " +
-                        "5G Catalog in order to translate.");
+                        "descriptors source in order to translate.");
 
                 ServiceSpecificationRef newRef;
                 try {
                     newRef = getFromSourceAndTranslateService(nsdId);
                 } catch (MissingEntityOnSourceException e) {
-                    String msg = "Service " + nsdId + " missing on 5G Catalog, abort.";
+                    String msg = "Service " + nsdId + " missing on descriptors source, abort.";
                     log.info(msg);
                     throw new MissingEntityOnSourceException(msg);
                 }
