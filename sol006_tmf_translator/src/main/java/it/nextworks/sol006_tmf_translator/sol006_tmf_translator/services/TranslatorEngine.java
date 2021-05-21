@@ -2,6 +2,8 @@ package it.nextworks.sol006_tmf_translator.sol006_tmf_translator.services;
 
 import it.nextworks.nfvmano.libs.common.enums.*;
 import it.nextworks.nfvmano.libs.descriptors.sol006.*;
+import it.nextworks.sol006_tmf_translator.information_models.commons.Pair;
+import it.nextworks.sol006_tmf_translator.sol006_tmf_translator.commons.enums.Kind;
 import it.nextworks.tmf_offering_catalog.information_models.common.*;
 import it.nextworks.tmf_offering_catalog.information_models.resource.*;
 import it.nextworks.tmf_offering_catalog.information_models.service.*;
@@ -799,11 +801,16 @@ public class TranslatorEngine {
         return rsc;
     }
 
-    public ResourceCandidateCreate buildVnfdResourceCandidate(String vnfdId, ResourceSpecification rs) {
+    public ResourceCandidateCreate
+    buildVnfdResourceCandidate(String vnfdId, Pair<String, String> pair, ResourceSpecification rs) {
 
         return new ResourceCandidateCreate()
                 .name("vnfd:" + vnfdId)
                 .lastUpdate(OffsetDateTime.ofInstant(Instant.now(), ZoneId.of("UTC")))
+                .category(Collections.singletonList(new ResourceCategoryRef()
+                        .name(Kind.VNFD.name())
+                        .href(pair.getFirst())
+                        .id(pair.getSecond())))
                 .resourceSpecification(new ResourceSpecificationRef()
                         .id(rs.getId())
                         .href(rs.getHref())
@@ -1173,10 +1180,15 @@ public class TranslatorEngine {
         return rsc;
     }
 
-    public ResourceCandidateCreate buildPnfdResourceCandidate(String pnfdId, ResourceSpecification rs) {
+    public ResourceCandidateCreate
+    buildPnfdResourceCandidate(String pnfdId, Pair<String, String> pair, ResourceSpecification rs) {
         return new ResourceCandidateCreate()
                 .name("pnfd:" + pnfdId)
                 .lastUpdate(OffsetDateTime.ofInstant(Instant.now(), ZoneId.of("UTC")))
+                .category(Collections.singletonList(new ResourceCategoryRef()
+                        .name(Kind.PNFD.name())
+                        .href(pair.getFirst())
+                        .id(pair.getSecond())))
                 .resourceSpecification(new ResourceSpecificationRef()
                         .id(rs.getId())
                         .href(rs.getHref())
@@ -2029,10 +2041,14 @@ public class TranslatorEngine {
         return ssc;
     }
 
-    public ServiceCandidateCreate buildNsdServiceCandidate(String nsdId, ServiceSpecification ss) {
+    public ServiceCandidateCreate buildNsdServiceCandidate(String nsdId, Pair<String, String> pair, ServiceSpecification ss) {
         return new ServiceCandidateCreate()
                 .name("nsd:" + nsdId)
                 .lastUpdate(OffsetDateTime.ofInstant(Instant.now(), ZoneId.of("UTC")))
+                .category(Collections.singletonList(new ServiceCategoryRef()
+                        .name(Kind.NSD.name())
+                        .href(pair.getFirst())
+                        .id(pair.getSecond())))
                 .serviceSpecification(new ServiceSpecificationRef()
                         .id(ss.getId())
                         .href(ss.getHref())

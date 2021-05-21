@@ -12,22 +12,21 @@ import it.nextworks.sol006_tmf_translator.sol006_tmf_translator.commons.enums.Ki
 import it.nextworks.sol006_tmf_translator.sol006_tmf_translator.commons.exception.*;
 import it.nextworks.tmf_offering_catalog.information_models.common.ResourceSpecificationRef;
 import it.nextworks.tmf_offering_catalog.information_models.common.ServiceSpecificationRef;
-import it.nextworks.tmf_offering_catalog.information_models.resource.ResourceCandidate;
-import it.nextworks.tmf_offering_catalog.information_models.resource.ResourceCandidateCreate;
-import it.nextworks.tmf_offering_catalog.information_models.resource.ResourceSpecification;
-import it.nextworks.tmf_offering_catalog.information_models.resource.ResourceSpecificationCreate;
-import it.nextworks.tmf_offering_catalog.information_models.service.ServiceCandidate;
-import it.nextworks.tmf_offering_catalog.information_models.service.ServiceCandidateCreate;
-import it.nextworks.tmf_offering_catalog.information_models.service.ServiceSpecification;
-import it.nextworks.tmf_offering_catalog.information_models.service.ServiceSpecificationCreate;
+import it.nextworks.tmf_offering_catalog.information_models.resource.*;
+import it.nextworks.tmf_offering_catalog.information_models.service.*;
 import org.apache.http.HttpEntity;
 import org.apache.http.util.EntityUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.SpringApplication;
+import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Service;
+import org.threeten.bp.Instant;
 import org.threeten.bp.OffsetDateTime;
+import org.threeten.bp.ZoneId;
 
+import javax.annotation.PostConstruct;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -47,16 +46,20 @@ public class TranslationService {
 
     private final MappingInfoService mappingInfoService;
 
+    private final ApplicationContext applicationContext;
+
     @Autowired
     public TranslationService(ObjectMapper objectMapper,
                               TranslatorEngine translatorEngine,
                               TranslatorCatalogInteractionService translatorCatalogInteractionService,
                               TranslatorDescSourceInteractionService translatorDescSourceInteractionService,
-                              MappingInfoService mappingInfoService) {
+                              MappingInfoService mappingInfoService,
+                              ApplicationContext applicationContext) {
         this.objectMapper = objectMapper;
         SimpleModule module = new SimpleModule();
         module.addSerializer(OffsetDateTime.class, new CustomOffsetDateTimeSerializer());
         this.objectMapper.registerModule(module);
+        this.applicationContext = applicationContext;
 
         this.translatorEngine = translatorEngine;
         this.translatorCatalogInteractionService = translatorCatalogInteractionService;
@@ -64,7 +67,74 @@ public class TranslationService {
         this.mappingInfoService = mappingInfoService;
     }
 
-    private Pair<ResourceCandidate, ResourceSpecification> translateAndPostVnfd(Vnfd vnfd) throws IOException, CatalogException {
+    @PostConstruct
+    private void initializeOfferCatalog() {
+        try {
+            getCategoryOrCreateIfNotExists(Kind.VNFD, "/resourceCatalogManagement/v2/resourceCategory/filter");
+            getCategoryOrCreateIfNotExists(Kind.PNFD, "/resourceCatalogManagement/v2/resourceCategory/filter");
+            getCategoryOrCreateIfNotExists(Kind.NSD, "/serviceCatalogManagement/v4/serviceCategory/filter");
+        } catch (CatalogException | IOException e) {
+            log.error(e.getMessage());
+            SpringApplication.exit(applicationContext, () -> -1);
+        }
+    }
+
+    private Pair<String, String> getCategoryOrCreateIfNotExists(Kind kind, String requestPath)
+            throws CatalogException, IOException {
+
+        String name = kind.name();
+        try {
+            HttpEntity en = this.translatorCatalogInteractionService.isCategoryPresent(kind, requestPath);
+            switch(kind) {
+                case VNFD:
+                case PNFD:
+                    ResourceCategory rc = objectMapper.readValue(EntityUtils.toString(en), ResourceCategory.class);
+                    return new Pair<>(rc.getHref(), rc.getId());
+
+                case NSD:
+                    ServiceCategory sc = objectMapper.readValue(EntityUtils.toString(en), ServiceCategory.class);
+                    return new Pair<>(sc.getHref(), sc.getId());
+
+                default:
+                    throw new IllegalArgumentException("Specified kind not VNFD, PNFD or NSD.");
+            }
+        } catch (MissingEntityOnCatalogException e) {
+            log.info("Posting Category " + name + " to Offer Catalog.");
+
+            switch(kind) {
+                case VNFD:
+                case PNFD:
+                    ResourceCategoryCreate rcc = new ResourceCategoryCreate()
+                            .name(name)
+                            .lastUpdate(OffsetDateTime.ofInstant(Instant.now(), ZoneId.of("UTC")));
+                    HttpEntity rcEntity = this.translatorCatalogInteractionService
+                            .post(objectMapper.writeValueAsString(rcc),
+                                    "/resourceCatalogManagement/v2/resourceCategory");
+                    ResourceCategory rc = objectMapper.readValue(EntityUtils.toString(rcEntity), ResourceCategory.class);
+
+                    log.info("Category " + name + " posted to Offer Catalog.");
+                    return new Pair<>(rc.getHref(), rc.getId());
+
+                case NSD:
+                    ServiceCategoryCreate scc = new ServiceCategoryCreate()
+                            .name(name)
+                            .lastUpdate(OffsetDateTime.ofInstant(Instant.now(), ZoneId.of("UTC")));
+                    HttpEntity scEntity = this.translatorCatalogInteractionService
+                            .post(objectMapper.writeValueAsString(scc),
+                                    "/serviceCatalogManagement/v4/serviceCategory");
+                    ServiceCategory sc = objectMapper.readValue(EntityUtils.toString(scEntity), ServiceCategory.class);
+
+                    log.info("Category " + name + " posted to Offer Catalog.");
+                    return new Pair<>(sc.getHref(), sc.getId());
+
+                default:
+                    throw new IllegalArgumentException("Specified kind not VNFD, PNFD or NSD.");
+            }
+        }
+    }
+
+    private Pair<ResourceCandidate, ResourceSpecification> translateAndPostVnfd(Vnfd vnfd)
+            throws IOException, CatalogException {
 
         String vnfdId = vnfd.getId();
         ResourceSpecificationCreate rsc = translatorEngine.buildVnfdResourceSpecification(vnfd);
@@ -77,7 +147,10 @@ public class TranslationService {
         ResourceSpecification rs =
                 objectMapper.readValue(EntityUtils.toString(httpEntity), ResourceSpecification.class);
 
-        ResourceCandidateCreate rcc = translatorEngine.buildVnfdResourceCandidate(vnfdId, rs);
+        Pair<String, String> pair = getCategoryOrCreateIfNotExists(Kind.VNFD,
+                "/resourceCatalogManagement/v2/resourceCategory/filter");
+
+        ResourceCandidateCreate rcc = translatorEngine.buildVnfdResourceCandidate(vnfdId, pair, rs);
 
         log.info("Posting Resource Candidate to Offer Catalog for vnfd " + vnfdId + ".");
 
@@ -145,7 +218,10 @@ public class TranslationService {
                 .post(rscJson, "/resourceCatalogManagement/v2/resourceSpecification");
         ResourceSpecification rs = objectMapper.readValue(EntityUtils.toString(httpEntity), ResourceSpecification.class);
 
-        ResourceCandidateCreate rcc = translatorEngine.buildPnfdResourceCandidate(pnfdId, rs);
+        Pair<String, String> pair = getCategoryOrCreateIfNotExists(Kind.PNFD,
+                "/resourceCatalogManagement/v2/resourceCategory/filter");
+
+        ResourceCandidateCreate rcc = translatorEngine.buildPnfdResourceCandidate(pnfdId, pair, rs);
 
         log.info("Posting Resource Candidate to Offer Catalog for pnfd " + pnfdId + ".");
 
@@ -397,7 +473,10 @@ public class TranslationService {
                 .post(sscJson, "/serviceCatalogManagement/v4/serviceSpecification");
         ServiceSpecification ss = objectMapper.readValue(EntityUtils.toString(httpEntity), ServiceSpecification.class);
 
-        ServiceCandidateCreate scc = translatorEngine.buildNsdServiceCandidate(nsdId, ss);
+        Pair<String, String> pair = getCategoryOrCreateIfNotExists(Kind.NSD,
+                "/serviceCatalogManagement/v4/serviceCategory/filter");
+
+        ServiceCandidateCreate scc = translatorEngine.buildNsdServiceCandidate(nsdId, pair, ss);
 
         log.info("Posting Service Candidate to Offer Catalog for nsd " + nsdId + ".");
 

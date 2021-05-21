@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import it.nextworks.sol006_tmf_translator.information_models.commons.Pair;
 import it.nextworks.sol006_tmf_translator.sol006_tmf_translator.commons.config.CustomOffsetDateTimeSerializer;
+import it.nextworks.sol006_tmf_translator.sol006_tmf_translator.commons.enums.Kind;
 import it.nextworks.sol006_tmf_translator.sol006_tmf_translator.commons.exception.CatalogException;
 import it.nextworks.sol006_tmf_translator.sol006_tmf_translator.commons.exception.MissingEntityOnCatalogException;
 import it.nextworks.sol006_tmf_translator.sol006_tmf_translator.commons.exception.ResourceMismatchException;
@@ -138,6 +139,26 @@ public class TranslatorCatalogInteractionService {
         }
 
         return new Pair<>(rc, rs);
+    }
+
+    public HttpEntity isCategoryPresent(Kind kind, String requestPath)
+            throws CatalogException, MissingEntityOnCatalogException {
+
+        String name = kind.name();
+        log.info("Checking if Category " + name + " exist in the Offer Catalog");
+
+        HttpEntity httpEntity;
+        try {
+            httpEntity = getFromCatalog(requestPath, "?name=" + name);
+        } catch (MissingEntityOnCatalogException e) {
+            String msg = "Category " + name + " not found in Offer Catalog.";
+            log.info(msg);
+            throw new MissingEntityOnCatalogException(msg);
+        }
+
+        log.info("Category " + name + " found in Offer Catalog.");
+
+        return httpEntity;
     }
 
     public Pair<ServiceCandidate, ServiceSpecification>
