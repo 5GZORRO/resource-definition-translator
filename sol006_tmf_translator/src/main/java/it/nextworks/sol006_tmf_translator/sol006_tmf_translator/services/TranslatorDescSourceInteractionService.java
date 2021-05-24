@@ -88,7 +88,7 @@ public class TranslatorDescSourceInteractionService {
         if(statusCode == 404)
             throw new MissingEntityOnSourceException();
         else if(statusCode != 200) {
-            String msg = "Offer Catalog GET request failed, status code: " + statusCode + ".";
+            String msg = "Descriptors Source GET request failed, status code: " + statusCode + ".";
             log.error(msg);
             throw new SourceException(msg);
         }

@@ -106,7 +106,7 @@ public class NsdTranslatorController implements NsdTranslatorInterface {
             log.info("Posting nsd " + nsdId + " to descriptors source.");
             try {
                 translatorDescSourceInteractionService.postOnSource(Kind.NSD, objectMapper.writeValueAsString(nsd));
-                log.info("nsd " + nsd + " posted on descriptors source.");
+                log.info("nsd " + nsdId + " posted on descriptors source.");
             } catch (UnsupportedEncodingException | SourceException | JsonProcessingException ee) {
                 return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new ErrMsg(ee.getMessage()));
             }
