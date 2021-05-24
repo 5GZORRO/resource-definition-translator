@@ -25,6 +25,6 @@ hs_err_pid*
 # IDE files and folders
 *.iml
 .idea/
-./information_models/target/
-./interfaces/target/
-./sol006_tmf_translator/target/
+/information_models/target
+/sol006_tmf_translator/target
+/interfaces/target

@@ -31,11 +31,11 @@ specified either by the northbound interface or by specifying the descriptor id 
   ```
 ## Installation
 Customize your translator properties in ```resource-definition-translator/sol006_tmf_translator/src/
-main/resources/application.properties``` then from ```resource-definition-translator/sol006_tmf_translator```
+main/resources/application.properties``` then from ```resource-definition-translator/```
 run the following commands.
 ```bash
 mvn clean install
-java -jar resource-definition-translator/sol006_tmf_translator/target/sol006_tmf_translator-1.0-SNAPSHOT.jar
+java -jar sol006_tmf_translator/target/sol006_tmf_translator-1.0-SNAPSHOT.jar
 ```
 
 ## Usage
