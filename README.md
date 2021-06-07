@@ -1,4 +1,5 @@
 # Resource Definition Translator
+The Resource Definition Translator is a component of the Virtual Resource Manager (VRM) architecture.
 Application that allows the translation of SOL006 descriptors into resources and services using the TMF Forum models.
 The translated descriptors are posted on the Resource and Service Offer Catalog. The descriptors to be translated can be
 specified either by the northbound interface or by specifying the descriptor id present on a descriptor repository.
@@ -19,7 +20,7 @@ specified either by the northbound interface or by specifying the descriptor id 
   ```
 - SOL006 Library
   ```bash
-  git clone --branch sol006 https://github.com/nextworks-it/nfv-sol-libs.git
+  git clone https://github.com/nextworks-it/nfv-sol-libs.git
   cd nfv-sol-libs
   ./install_nfv_sol_libs.sh
   ```
