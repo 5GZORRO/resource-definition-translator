@@ -134,7 +134,7 @@ public class VnfdTranslatorController implements VnfdTranslatorInterface {
         } catch (SourceException e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new ErrMsg(e.getMessage()));
         } catch (MissingEntityOnSourceException e) {
-            String msg = e.getMessage();
+            String msg = "vnfd with id " + vnfdId + " not found in descriptor source.";
             log.info(msg);
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ErrMsg(msg));
         }

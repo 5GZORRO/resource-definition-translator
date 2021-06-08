@@ -134,7 +134,7 @@ public class PnfdTranslatorController implements PnfdTranslatorInterface {
         } catch (SourceException e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new ErrMsg(e.getMessage()));
         } catch (MissingEntityOnSourceException e) {
-            String msg = e.getMessage();
+            String msg = "pnfd with id " + pnfdId + " not found in descriptor source.";
             log.info(msg);
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ErrMsg(msg));
         }

@@ -137,7 +137,7 @@ public class NsdTranslatorController implements NsdTranslatorInterface {
         } catch (SourceException e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new ErrMsg(e.getMessage()));
         } catch (MissingEntityOnSourceException e) {
-            String msg = e.getMessage();
+            String msg = "nsd with id " + nsdId + " not found in descriptor source.";
             log.info(msg);
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ErrMsg(msg));
         }
