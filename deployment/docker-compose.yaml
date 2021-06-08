@@ -1,0 +1,52 @@
+version: '3.3'
+
+services:
+  postgres:
+    image: postgres
+    restart: always
+    volumes:
+      - /opt/resource_definition_translator/postgres:/var/lib/postgresql/data
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PSW}
+    ports:
+      - ${POSTGRES_PORT}:5432
+
+  translator:
+    container_name: resource_definition_translator
+    image: resource_definition_translator:latest
+    restart: always
+    build:
+      context: ../
+      dockerfile: deployment/Dockerfile
+      args:
+        NFV_SOL006_LIBS_REPO: ${NFV_SOL006_LIBS_REPO}
+        NFV_SOL006_LIBS_VERSION: ${NFV_SOL006_LIBS_VERSION}
+        TMF_INFO_MODELS_REPO: ${TMF_INFO_MODELS_REPO}
+        TMF_INFO_MODELS_VERSION: ${TMF_INFO_MODELS_VERSION}
+    environment:
+      TRANSLATOR_HOSTNAME: ${TRANSLATOR_HOSTNAME}
+      SERVER_PORT: ${SERVER_PORT}
+      OFFER_CATALOG_HOSTNAME: ${OFFER_CATALOG_HOSTNAME}
+      OFFER_CATALOG_PORT: ${OFFER_CATALOG_PORT}
+      DESCRIPTOR_SOURCE_HOSTNAME: ${DESCRIPTOR_SOURCE_HOSTNAME}
+      DESCRIPTOR_SOURCE_PORT: ${DESCRIPTOR_SOURCE_PORT}
+      DESCRIPTOR_SOURCE_VNFD_PATH: ${DESCRIPTOR_SOURCE_VNFD_PATH}
+      DESCRIPTOR_SOURCE_PNFD_PATH: ${DESCRIPTOR_SOURCE_PNFD_PATH}
+      DESCRIPTOR_SOURCE_NSD_PATH: ${DESCRIPTOR_SOURCE_NSD_PATH}
+      POSTGRES_HOSTNAME: ${POSTGRES_HOSTNAME}
+      POSTGRES_PORT: ${POSTGRES_PORT}
+      POSTGRES_MODE: ${POSTGRES_MODE}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PSW: ${POSTGRES_PSW}
+    ports:
+      - ${SERVER_PORT}:${SERVER_PORT}
+    depends_on:
+      - postgres
+
+networks:
+  default:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.30.0.0/24
