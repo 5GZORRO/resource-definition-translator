@@ -28,11 +28,11 @@ public class TranslatorEngine {
         log.info("Translating vnfd " + vnfd.getId() + ".");
 
         String vnfdProductName = vnfd.getProductName();
+        String version = vnfd.getVersion();
         ResourceSpecificationCreate rsc = new ResourceSpecificationCreate()
-                .description(vnfdProductName + " version " +
-                        vnfd.getSoftwareVersion() + " by " + vnfd.getProvider())
+                .description(vnfdProductName + " version " + version + " by " + vnfd.getProvider())
                 .name(vnfdProductName)
-                .version(vnfd.getVersion())
+                .version(version)
                 .lastUpdate(OffsetDateTime.ofInstant(Instant.now(), ZoneId.of("UTC")));
 
         List<ResourceSpecCharacteristic> resourceSpecCharacteristics = new ArrayList<>();
@@ -305,13 +305,13 @@ public class TranslatorEngine {
 
                 List<ResourceSpecCharacteristicValue> rscvs = new ArrayList<>();
 
-                String version = vnfdSwimagedesc.getVersion();
-                if(version == null)
+                String vnfdSwimagedescVersion = vnfdSwimagedesc.getVersion();
+                if(vnfdSwimagedescVersion == null)
                     log.debug("null version, skipping value");
                 else {
                     ResourceSpecCharacteristicValue versionRscv = new ResourceSpecCharacteristicValue()
                             .value(new Any().alias("version")
-                                    .value(version))
+                                    .value(vnfdSwimagedescVersion))
                             .valueType("String");
                     rscvs.add(versionRscv);
                 }
@@ -465,9 +465,31 @@ public class TranslatorEngine {
         }
 
         List<ExtCpd> extCpds = vnfd.getExtCpd();
-        if(extCpds == null)
-            log.debug("null ext-cpd list, skipping characteristics.");
-        else {
+        ResourceSpecCharacteristic nExtCpd = new ResourceSpecCharacteristic()
+                .configurable(false)
+                .description("Number of external connection points.")
+                .extensible(false)
+                .isUnique(true)
+                .name("nExtCpd");
+        List<ResourceSpecCharacteristicValue> nExtCpdValueLst = new ArrayList<>();
+        if(extCpds == null) {
+            ResourceSpecCharacteristicValue nExtCpdValue = new ResourceSpecCharacteristicValue()
+                    .value(new Any().alias("number of external connection points").value("0")).valueType("Integer");
+            nExtCpdValueLst.add(nExtCpdValue);
+
+            nExtCpd.setResourceSpecCharacteristicValue(nExtCpdValueLst);
+            resourceSpecCharacteristics.add(nExtCpd);
+        } else {
+
+            ResourceSpecCharacteristicValue nExtCpdValue = new ResourceSpecCharacteristicValue()
+                    .value(new Any().alias("number of external connection points")
+                            .value(String.valueOf(extCpds.size())))
+                    .valueType("Integer");
+            nExtCpdValueLst.add(nExtCpdValue);
+
+            nExtCpd.setResourceSpecCharacteristicValue(nExtCpdValueLst);
+            resourceSpecCharacteristics.add(nExtCpd);
+
             for(ExtCpd extCpd : extCpds) {
 
                 String extCpdId = extCpd.getId();
