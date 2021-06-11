@@ -3,7 +3,6 @@ package it.nextworks.sol006_tmf_translator.sol006_tmf_translator.services;
 import it.nextworks.nfvmano.libs.common.enums.*;
 import it.nextworks.nfvmano.libs.descriptors.sol006.*;
 import it.nextworks.sol006_tmf_translator.information_models.commons.Pair;
-import it.nextworks.sol006_tmf_translator.sol006_tmf_translator.commons.enums.Kind;
 import it.nextworks.tmf_offering_catalog.information_models.common.*;
 import it.nextworks.tmf_offering_catalog.information_models.resource.*;
 import it.nextworks.tmf_offering_catalog.information_models.service.*;
@@ -39,12 +38,9 @@ public class TranslatorEngine {
         List<ResourceSpecCharacteristic> resourceSpecCharacteristics = new ArrayList<>();
 
         ResourceSpecCharacteristic rscVnfdId = new ResourceSpecCharacteristic()
-                .configurable(false)
-                .extensible(false)
-                .isUnique(true)
                 .name("vnfdId")
                 .resourceSpecCharacteristicValue(Collections.singletonList(new ResourceSpecCharacteristicValue()
-                        .value(new Any().alias("vnfdId").value(vnfdId)).valueType("String")));
+                        .value(new Any().alias("vnfdId").value(vnfdId))));
 
         resourceSpecCharacteristics.add(rscVnfdId);
 
@@ -53,16 +49,12 @@ public class TranslatorEngine {
             log.debug("null vnfm-info list, skipping characteristics.");
         else {
             ResourceSpecCharacteristic rscVnfmInfo = new ResourceSpecCharacteristic()
-                    .configurable(true)
-                    .extensible(true)
-                    .isUnique(true)
                     .name("vnfm-info");
 
             List<ResourceSpecCharacteristicValue> rscvs = new ArrayList<>();
 
             ResourceSpecCharacteristicValue rscv = new ResourceSpecCharacteristicValue()
-                    .value(new Any().value(vnfmInfo.toString()))
-                    .valueType("List<String>");
+                    .value(new Any().value(vnfmInfo.toString()));
             rscvs.add(rscv);
 
             rscVnfmInfo.setResourceSpecCharacteristicValue(rscvs);
@@ -83,10 +75,7 @@ public class TranslatorEngine {
                 }
 
                 ResourceSpecCharacteristic rscVnfVdu = new ResourceSpecCharacteristic()
-                        .configurable(true)
                         .description("vdu " + vnfdVduId)
-                        .extensible(true)
-                        .isUnique(true)
                         .name(vnfdVdu.getName());
 
                 List<ResourceSpecCharacteristicValue> rscvs = new ArrayList<>();
@@ -122,9 +111,7 @@ public class TranslatorEngine {
                         }
 
                         ResourceSpecCharacteristicValue rscv = new ResourceSpecCharacteristicValue()
-                                .value(new Any().alias("int-cpd " + vnfdVduIntCpdItemId)
-                                        .value(value))
-                                .valueType("VnfdVduIntCpdItem");
+                                .value(new Any().alias("int-cpd " + vnfdVduIntCpdItemId).value(value));
                         rscvs.add(rscv);
                     }
                 }
@@ -134,9 +121,7 @@ public class TranslatorEngine {
                     log.debug("null virtual-compute-desc, skipping value.");
                 else {
                     ResourceSpecCharacteristicValue vcdRscv = new ResourceSpecCharacteristicValue()
-                            .value(new Any().alias("virtual-compute-desc")
-                                    .value(virtualComputeDesc))
-                            .valueType("String");
+                            .value(new Any().alias("virtual-compute-desc").value(virtualComputeDesc));
                     rscvs.add(vcdRscv);
                 }
 
@@ -145,9 +130,7 @@ public class TranslatorEngine {
                     log.debug("null virtual-storage-desc list, skipping value.");
                 else {
                     ResourceSpecCharacteristicValue vsdRscv = new ResourceSpecCharacteristicValue()
-                            .value(new Any().alias("virtual-storage-desc")
-                                    .value(virtualStorageDesc.toString()))
-                            .valueType("List<String>");
+                            .value(new Any().alias("virtual-storage-desc").value(virtualStorageDesc.toString()));
                     rscvs.add(vsdRscv);
                 }
 
@@ -156,9 +139,7 @@ public class TranslatorEngine {
                     log.debug("null sw-image-desc, skipping value.");
                 else {
                     ResourceSpecCharacteristicValue sidRscv = new ResourceSpecCharacteristicValue()
-                            .value(new Any().alias("sw-image-desc")
-                                    .value(swImageDesc))
-                            .valueType("String");
+                            .value(new Any().alias("sw-image-desc").value(swImageDesc));
                     rscvs.add(sidRscv);
                 }
 
@@ -181,10 +162,7 @@ public class TranslatorEngine {
                 }
 
                 ResourceSpecCharacteristic rscVvcd = new ResourceSpecCharacteristic()
-                        .configurable(true)
                         .description("virtual-compute-desc " + vnfdVirtualcomputedescId)
-                        .extensible(true)
-                        .isUnique(true)
                         .name(vnfdVirtualcomputedescId);
 
                 List<ResourceSpecCharacteristicValue> rscvs = new ArrayList<>();
@@ -199,13 +177,12 @@ public class TranslatorEngine {
                     if(size == null)
                         log.debug("null virtual-memory size, not inserted in value field.");
                     else
-                        value = "size: " + size.toString();
+                        value = size.toString();
 
                     ResourceSpecCharacteristicValue vmRscv = new ResourceSpecCharacteristicValue()
                             .value(new Any().alias("virtual-memory")
                                     .value(value))
-                            .unitOfMeasure("GB")
-                            .valueType("VnfdVirtualmemory");
+                            .unitOfMeasure("MB");
                     rscvs.add(vmRscv);
                 }
 
@@ -234,8 +211,7 @@ public class TranslatorEngine {
                     ResourceSpecCharacteristicValue vvcRscv = new ResourceSpecCharacteristicValue()
                             .value(new Any().alias("virtual-cpu")
                                     .value(value))
-                            .unitOfMeasure("num_cpu * GHz")
-                            .valueType("VnfdVirtualcpu");
+                            .unitOfMeasure("num_cpu * GHz");
                     rscvs.add(vvcRscv);
                 }
 
@@ -258,10 +234,7 @@ public class TranslatorEngine {
                 }
 
                 ResourceSpecCharacteristic rscVvsd = new ResourceSpecCharacteristic()
-                        .configurable(true)
                         .description("virtual-storage-desc " + vnfdVirtualstoragedescId)
-                        .extensible(true)
-                        .isUnique(true)
                         .name(vnfdVirtualstoragedescId);
 
                 List<ResourceSpecCharacteristicValue> rscvs = new ArrayList<>();
@@ -272,8 +245,7 @@ public class TranslatorEngine {
                 else {
                     ResourceSpecCharacteristicValue tsRscv = new ResourceSpecCharacteristicValue()
                             .value(new Any().alias("type-of-storage")
-                                    .value(typeOfStorage))
-                            .valueType("String");
+                                    .value(typeOfStorage));
                     rscvs.add(tsRscv);
                 }
 
@@ -284,8 +256,7 @@ public class TranslatorEngine {
                     ResourceSpecCharacteristicValue ssRscv = new ResourceSpecCharacteristicValue()
                             .value(new Any().alias("size-of-storage")
                                     .value(sizeOfStorage))
-                            .unitOfMeasure("GB")
-                            .valueType("String");
+                            .unitOfMeasure("GB");
                     rscvs.add(ssRscv);
                 }
 
@@ -308,10 +279,7 @@ public class TranslatorEngine {
                 }
 
                 ResourceSpecCharacteristic rscVsid = new ResourceSpecCharacteristic()
-                        .configurable(true)
                         .description("sw-image-desc " + vnfdSwimagedescId)
-                        .extensible(true)
-                        .isUnique(true)
                         .name(vnfdSwimagedescId);
 
                 List<ResourceSpecCharacteristicValue> rscvs = new ArrayList<>();
@@ -321,9 +289,7 @@ public class TranslatorEngine {
                     log.debug("null version, skipping value");
                 else {
                     ResourceSpecCharacteristicValue versionRscv = new ResourceSpecCharacteristicValue()
-                            .value(new Any().alias("version")
-                                    .value(vnfdSwimagedescVersion))
-                            .valueType("String");
+                            .value(new Any().alias("version").value(vnfdSwimagedescVersion));
                     rscvs.add(versionRscv);
                 }
 
@@ -350,9 +316,7 @@ public class TranslatorEngine {
                     }
 
                     ResourceSpecCharacteristicValue checksumRscv = new ResourceSpecCharacteristicValue()
-                            .value(new Any().alias("checksum")
-                                    .value(value))
-                            .valueType("VnfdChecksum");
+                            .value(new Any().alias("checksum").value(value));
                     rscvs.add(checksumRscv);
                 }
 
@@ -361,9 +325,7 @@ public class TranslatorEngine {
                     log.debug("null container-format, skipping value");
                 else {
                     ResourceSpecCharacteristicValue cfRscv = new ResourceSpecCharacteristicValue()
-                            .value(new Any().alias("container-format")
-                                    .value(containerFormat.toString()))
-                            .valueType("VnfdSwimagedesc.ContainerFormatEnum");
+                            .value(new Any().alias("container-format").value(containerFormat.toString()));
                     rscvs.add(cfRscv);
                 }
 
@@ -372,9 +334,7 @@ public class TranslatorEngine {
                     log.debug("null disk-format, skipping value.");
                 else {
                     ResourceSpecCharacteristicValue dfRscv = new ResourceSpecCharacteristicValue()
-                            .value(new Any().alias("disk-format")
-                                    .value(diskFormat.toString()))
-                            .valueType("VnfdSwimagedesc.DiskFormatEnum");
+                            .value(new Any().alias("disk-format").value(diskFormat.toString()));
                     rscvs.add(dfRscv);
                 }
 
@@ -383,9 +343,7 @@ public class TranslatorEngine {
                     log.debug("null min-disk, skipping value.");
                 else {
                     ResourceSpecCharacteristicValue mdRscv = new ResourceSpecCharacteristicValue()
-                            .value(new Any().alias("min-disk")
-                                    .value(minDisk))
-                            .valueType("String");
+                            .value(new Any().alias("min-disk").value(minDisk));
                     rscvs.add(mdRscv);
                 }
 
@@ -396,8 +354,7 @@ public class TranslatorEngine {
                     ResourceSpecCharacteristicValue mrRscv = new ResourceSpecCharacteristicValue()
                             .value(new Any().alias("min-ram")
                                     .value(minRam.toString()))
-                            .unitOfMeasure("GB")
-                            .valueType("Double");
+                            .unitOfMeasure("GB");
                     rscvs.add(mrRscv);
                 }
 
@@ -406,9 +363,7 @@ public class TranslatorEngine {
                     log.debug("null size, skipping value.");
                 else {
                     ResourceSpecCharacteristicValue sRscv = new ResourceSpecCharacteristicValue()
-                            .value(new Any().alias("size")
-                                    .value(size))
-                            .valueType("String");
+                            .value(new Any().alias("size").value(size));
                     rscvs.add(sRscv);
                 }
 
@@ -417,9 +372,7 @@ public class TranslatorEngine {
                     log.debug("null image, skipping value.");
                 else {
                     ResourceSpecCharacteristicValue iRscv = new ResourceSpecCharacteristicValue()
-                            .value(new Any().alias("image")
-                                    .value(image))
-                            .valueType("String");
+                            .value(new Any().alias("image").value(image));
                     rscvs.add(iRscv);
                 }
 
@@ -442,10 +395,7 @@ public class TranslatorEngine {
                 }
 
                 ResourceSpecCharacteristic rscIvld = new ResourceSpecCharacteristic()
-                        .configurable(true)
                         .description("int-virtual-link-desc " + intVirtualLinkDescId)
-                        .extensible(true)
-                        .isUnique(true)
                         .name(intVirtualLinkDescId);
 
                 List<ResourceSpecCharacteristicValue> rscvs = new ArrayList<>();
@@ -464,9 +414,7 @@ public class TranslatorEngine {
                 }
 
                 ResourceSpecCharacteristicValue pRscv = new ResourceSpecCharacteristicValue()
-                        .value(new Any().alias("connectivity-type")
-                                .value("layer-protocol -> protocol: " + value))
-                        .valueType("IntVirtualLinkDesc");
+                        .value(new Any().alias("connectivity-type").value("layer-protocol -> protocol: " + value));
                 rscvs.add(pRscv);
 
                 rscIvld.setResourceSpecCharacteristicValue(rscvs);
@@ -477,15 +425,12 @@ public class TranslatorEngine {
 
         List<ExtCpd> extCpds = vnfd.getExtCpd();
         ResourceSpecCharacteristic nExtCpd = new ResourceSpecCharacteristic()
-                .configurable(false)
                 .description("Number of external connection points.")
-                .extensible(false)
-                .isUnique(true)
                 .name("nExtCpd");
         List<ResourceSpecCharacteristicValue> nExtCpdValueLst = new ArrayList<>();
         if(extCpds == null) {
             ResourceSpecCharacteristicValue nExtCpdValue = new ResourceSpecCharacteristicValue()
-                    .value(new Any().alias("number of external connection points").value("0")).valueType("Integer");
+                    .value(new Any().alias("number of external connection points").value("0"));
             nExtCpdValueLst.add(nExtCpdValue);
 
             nExtCpd.setResourceSpecCharacteristicValue(nExtCpdValueLst);
@@ -493,9 +438,7 @@ public class TranslatorEngine {
         } else {
 
             ResourceSpecCharacteristicValue nExtCpdValue = new ResourceSpecCharacteristicValue()
-                    .value(new Any().alias("number of external connection points")
-                            .value(String.valueOf(extCpds.size())))
-                    .valueType("Integer");
+                    .value(new Any().alias("number of external connection points").value(String.valueOf(extCpds.size())));
             nExtCpdValueLst.add(nExtCpdValue);
 
             nExtCpd.setResourceSpecCharacteristicValue(nExtCpdValueLst);
@@ -510,10 +453,7 @@ public class TranslatorEngine {
                 }
 
                 ResourceSpecCharacteristic rscEc = new ResourceSpecCharacteristic()
-                        .configurable(true)
                         .description("ext-cpd " + extCpdId)
-                        .extensible(true)
-                        .isUnique(true)
                         .name(extCpdId);
 
                 List<ResourceSpecCharacteristicValue> rscvs = new ArrayList<>();
@@ -541,9 +481,7 @@ public class TranslatorEngine {
                     }
 
                     ResourceSpecCharacteristicValue ecRscv = new ResourceSpecCharacteristicValue()
-                            .value(new Any().alias("int-cpd")
-                                    .value(value))
-                            .valueType("IntCpdSchema");
+                            .value(new Any().alias("int-cpd").value(value));
                     rscvs.add(ecRscv);
                 }
 
@@ -552,9 +490,7 @@ public class TranslatorEngine {
                     log.debug("null int-virtual-link-desc, skipping value.");
                 else {
                     ResourceSpecCharacteristicValue ivldRscv = new ResourceSpecCharacteristicValue()
-                            .value(new Any().alias("int-virtual-link-desc")
-                                    .value(intVirtualLinkDesc))
-                            .valueType("String");
+                            .value(new Any().alias("int-virtual-link-desc").value(intVirtualLinkDesc));
                     rscvs.add(ivldRscv);
                 }
 
@@ -563,9 +499,7 @@ public class TranslatorEngine {
                     log.debug("null layer-protocol list, skipping value.");
                 else {
                     ResourceSpecCharacteristicValue lpRscv = new ResourceSpecCharacteristicValue()
-                            .value(new Any().alias("layer-protocol")
-                                    .value(layerProtocols.toString()))
-                            .valueType("List<String>");
+                            .value(new Any().alias("layer-protocol").value(layerProtocols.toString()));
                     rscvs.add(lpRscv);
                 }
 
@@ -588,10 +522,7 @@ public class TranslatorEngine {
                 }
 
                 ResourceSpecCharacteristic rscVnfdDf = new ResourceSpecCharacteristic()
-                        .configurable(true)
                         .description("df " + vnfdDfId)
-                        .extensible(true)
-                        .isUnique(true)
                         .name(vnfdDfId);
 
                 List<ResourceSpecCharacteristicValue> rscvs = new ArrayList<>();
@@ -648,9 +579,7 @@ public class TranslatorEngine {
                         }
 
                         ResourceSpecCharacteristicValue vdvpRscv = new ResourceSpecCharacteristicValue()
-                                .value(new Any().alias("vdu-profile " + vnfdDfVduProfileItemId)
-                                        .value(value))
-                                .valueType("VnfdDfVduProfileItem");
+                                .value(new Any().alias("vdu-profile " + vnfdDfVduProfileItemId).value(value));
                         rscvs.add(vdvpRscv);
                     }
                 }
@@ -698,8 +627,7 @@ public class TranslatorEngine {
 
                         ResourceSpecCharacteristicValue vilRscv = new ResourceSpecCharacteristicValue()
                                 .value(new Any().alias("instantiation-level " + vnfdInstantiationlevelId)
-                                        .value(valueLst.toString()))
-                                .valueType("VnfdInstantiationlevel");
+                                        .value(valueLst.toString()));
                         rscvs.add(vilRscv);
                     }
                 }
@@ -709,9 +637,7 @@ public class TranslatorEngine {
                     log.debug("null default-instantiation-level, skipping value.");
                 else {
                     ResourceSpecCharacteristicValue dilRscv = new ResourceSpecCharacteristicValue()
-                            .value(new Any().alias("default-instantiation-level")
-                                    .value(defaultInstantiationLevel))
-                            .valueType("String");
+                            .value(new Any().alias("default-instantiation-level").value(defaultInstantiationLevel));
                     rscvs.add(dilRscv);
                 }
 
@@ -777,9 +703,7 @@ public class TranslatorEngine {
                     }
 
                     ResourceSpecCharacteristicValue locRscv = new ResourceSpecCharacteristicValue()
-                            .value(new Any().alias("lcm-operations-configuration")
-                                    .value(value))
-                            .valueType("VnfdLcmoperationsconfiguration");
+                            .value(new Any().alias("lcm-operations-configuration").value(value));
                     rscvs.add(locRscv);
                 }
 
@@ -817,8 +741,7 @@ public class TranslatorEngine {
                         ResourceSpecCharacteristicValue aagRscv = new ResourceSpecCharacteristicValue()
                                 .value(new Any().alias("affinity-or-anti-affinity-group " +
                                         affinityorantiaffinitygroupId)
-                                        .value(value))
-                                .valueType("VnfdAffinityorantiaffinitygroup");
+                                        .value(value));
                         rscvs.add(aagRscv);
                     }
                 }
@@ -835,19 +758,17 @@ public class TranslatorEngine {
     }
 
     public ResourceCandidateCreate
-    buildVnfdResourceCandidate(String vnfdId, Pair<String, String> pair, ResourceSpecification rs) {
+    buildVnfdResourceCandidate(String productName, Pair<String, String> pair, ResourceSpecification rs) {
 
         return new ResourceCandidateCreate()
-                .name("vnfd:" + vnfdId)
+                .name(productName)
                 .lastUpdate(OffsetDateTime.ofInstant(Instant.now(), ZoneId.of("UTC")))
                 .category(Collections.singletonList(new ResourceCategoryRef()
-                        .name(Kind.VNF.name())
                         .href(pair.getFirst())
                         .id(pair.getSecond())))
                 .resourceSpecification(new ResourceSpecificationRef()
                         .id(rs.getId())
-                        .href(rs.getHref())
-                        .name("vnfd specification: " + vnfdId));
+                        .href(rs.getHref()));
     }
 
     public ResourceSpecificationCreate buildPnfdResourceSpecification(Pnfd pnfd) {
@@ -867,12 +788,9 @@ public class TranslatorEngine {
         List<ResourceSpecCharacteristic> resourceSpecCharacteristics = new ArrayList<>();
 
         ResourceSpecCharacteristic rscPnfdId = new ResourceSpecCharacteristic()
-                .configurable(false)
-                .extensible(false)
-                .isUnique(true)
                 .name("pnfdId")
                 .resourceSpecCharacteristicValue(Collections.singletonList(new ResourceSpecCharacteristicValue()
-                        .value(new Any().alias("pnfdId").value(pnfdId)).valueType("String")));
+                        .value(new Any().alias("pnfdId").value(pnfdId))));
 
         resourceSpecCharacteristics.add(rscPnfdId);
 
@@ -889,10 +807,7 @@ public class TranslatorEngine {
                 }
 
                 ResourceSpecCharacteristic rscPnfdExtCpd = new ResourceSpecCharacteristic()
-                        .configurable(true)
                         .description("ext-cpd " + extCpdId + ": " + extCpd.getDescription())
-                        .extensible(true)
-                        .isUnique(true)
                         .name(extCpdId);
 
                 List<ResourceSpecCharacteristicValue> rscv = new ArrayList<>();
@@ -903,8 +818,7 @@ public class TranslatorEngine {
                 else {
                     ResourceSpecCharacteristicValue lpRscv = new ResourceSpecCharacteristicValue()
                             .value(new Any().alias("layer-protocol")
-                                    .value(layerProtocol.toString()))
-                            .valueType("List<String>");
+                                    .value(layerProtocol.toString()));
                     rscv.add(lpRscv);
                 }
 
@@ -1013,9 +927,7 @@ public class TranslatorEngine {
                         }
 
                         ResourceSpecCharacteristicValue pRscv = new ResourceSpecCharacteristicValue()
-                                .value(new Any().alias("protocol" + i)
-                                        .value(value))
-                                .valueType("CpdProtocol");
+                                .value(new Any().alias("protocol" + i).value(value));
                         rscv.add(pRscv);
                         i++;
                     }
@@ -1026,9 +938,7 @@ public class TranslatorEngine {
                     log.debug("null role, skipping value.");
                 else {
                     ResourceSpecCharacteristicValue rRscv = new ResourceSpecCharacteristicValue()
-                            .value(new Any().alias("role")
-                                    .value(role))
-                            .valueType("String");
+                            .value(new Any().alias("role").value(role));
                     rscv.add(rRscv);
                 }
 
@@ -1037,9 +947,7 @@ public class TranslatorEngine {
                     log.debug("null trunk-mode, skipping value.");
                 else {
                     ResourceSpecCharacteristicValue itmRscv = new ResourceSpecCharacteristicValue()
-                            .value(new Any().alias("trunk-mode")
-                                    .value(isTrunkMode.toString()))
-                            .valueType("Boolean");
+                            .value(new Any().alias("trunk-mode").value(isTrunkMode.toString()));
                     rscv.add(itmRscv);
                 }
 
@@ -1054,13 +962,10 @@ public class TranslatorEngine {
             log.debug("null geographical-location-info, skipping characteristic");
         else {
             ResourceSpecCharacteristic rscGli = new ResourceSpecCharacteristic()
-                    .configurable(false)
                     .description("geographical-location-info")
-                    .extensible(false)
-                    .isUnique(true)
                     .name("geographical-location-info")
                     .resourceSpecCharacteristicValue(Collections.singletonList(new ResourceSpecCharacteristicValue()
-                            .value(new Any().value(geographicalLocationInfo)).valueType("String")));
+                            .value(new Any().value(geographicalLocationInfo))));
             resourceSpecCharacteristics.add(rscGli);
         }
 
@@ -1069,13 +974,10 @@ public class TranslatorEngine {
             log.debug("null invariant-id, skipping characteristic.");
         else {
             ResourceSpecCharacteristic rscIi = new ResourceSpecCharacteristic()
-                    .configurable(false)
                     .description("invariant-id")
-                    .extensible(false)
-                    .isUnique(true)
                     .name("invariant-id")
                     .resourceSpecCharacteristicValue(Collections.singletonList(new ResourceSpecCharacteristicValue()
-                    .value(new Any().value(invariantId)).valueType("String")));
+                    .value(new Any().value(invariantId))));
             resourceSpecCharacteristics.add(rscIi);
         }
 
@@ -1086,10 +988,7 @@ public class TranslatorEngine {
             int i = 0;
             for(SecurityParameters securityParameter : securityParameters) {
                 ResourceSpecCharacteristic rscSp = new ResourceSpecCharacteristic()
-                        .configurable(true)
                         .description("security" + i)
-                        .extensible(true)
-                        .isUnique(true)
                         .name("security" + i);
 
                 List<ResourceSpecCharacteristicValue> rscv = new ArrayList<>();
@@ -1099,9 +998,7 @@ public class TranslatorEngine {
                     log.debug("null certificate, skipping value.");
                 else {
                     ResourceSpecCharacteristicValue cRscv = new ResourceSpecCharacteristicValue()
-                            .value(new Any().alias("certificate")
-                                    .value(certificate))
-                            .valueType("String");
+                            .value(new Any().alias("certificate").value(certificate));
                     rscv.add(cRscv);
                 }
 
@@ -1110,9 +1007,7 @@ public class TranslatorEngine {
                     log.debug("null algorithm, skipping value.");
                 else {
                     ResourceSpecCharacteristicValue aRscv = new ResourceSpecCharacteristicValue()
-                            .value(new Any().alias("algorithm")
-                                    .value(algorithm))
-                            .valueType("String");
+                            .value(new Any().alias("algorithm").value(algorithm));
                     rscv.add(aRscv);
                 }
 
@@ -1121,9 +1016,7 @@ public class TranslatorEngine {
                     log.debug("null signature, skipping value.");
                 else {
                     ResourceSpecCharacteristicValue sRscv = new ResourceSpecCharacteristicValue()
-                            .value(new Any().alias("signature")
-                                    .value(signature))
-                            .valueType("String");
+                            .value(new Any().alias("signature").value(signature));
                     rscv.add(sRscv);
                 }
 
@@ -1148,11 +1041,8 @@ public class TranslatorEngine {
                 }
 
                 ResourceSpecCharacteristic rscSgr = new ResourceSpecCharacteristic()
-                        .configurable(true)
                         .description("security-group-rule " + securityGroupRuleId + ": " +
                                 securityGroupRule.getDescription())
-                        .extensible(true)
-                        .isUnique(true)
                         .name(securityGroupRuleId);
 
                 List<ResourceSpecCharacteristicValue> rscv = new ArrayList<>();
@@ -1162,9 +1052,7 @@ public class TranslatorEngine {
                     log.debug("null direction, skipping value");
                 else {
                     ResourceSpecCharacteristicValue dRscv = new ResourceSpecCharacteristicValue()
-                            .value(new Any().alias("direction")
-                                    .value(direction.toString()))
-                            .valueType("SecuritygroupruleSecuritygrouprule.DirectionEnum");
+                            .value(new Any().alias("direction").value(direction.toString()));
                     rscv.add(dRscv);
                 }
 
@@ -1173,9 +1061,7 @@ public class TranslatorEngine {
                     log.debug("null ether-type, skipping value");
                 else {
                     ResourceSpecCharacteristicValue etRscv = new ResourceSpecCharacteristicValue()
-                            .value(new Any().alias("ether-type")
-                                    .value(etherType.toString()))
-                            .valueType("SecuritygroupruleSecuritygrouprule.EtherTypeEnum");
+                            .value(new Any().alias("ether-type").value(etherType.toString()));
                     rscv.add(etRscv);
                 }
 
@@ -1184,9 +1070,7 @@ public class TranslatorEngine {
                     log.debug("null port-range-max, skipping value");
                 else {
                     ResourceSpecCharacteristicValue prmRscv = new ResourceSpecCharacteristicValue()
-                            .value(new Any().alias("port-range-max")
-                                    .value(portRangeMax))
-                            .valueType("String");
+                            .value(new Any().alias("port-range-max").value(portRangeMax));
                     rscv.add(prmRscv);
                 }
 
@@ -1195,9 +1079,7 @@ public class TranslatorEngine {
                     log.debug("null port-range-min, skipping value");
                 else {
                     ResourceSpecCharacteristicValue prmRscv = new ResourceSpecCharacteristicValue()
-                            .value(new Any().alias("port-range-min")
-                                    .value(portRangeMin))
-                            .valueType("String");
+                            .value(new Any().alias("port-range-min").value(portRangeMin));
                     rscv.add(prmRscv);
                 }
 
@@ -1206,9 +1088,7 @@ public class TranslatorEngine {
                     log.debug("null protocol, skipping value");
                 else {
                     ResourceSpecCharacteristicValue pRscv = new ResourceSpecCharacteristicValue()
-                            .value(new Any().alias("protocol")
-                                    .value(protocol.toString()))
-                            .valueType("SecuritygroupruleSecuritygrouprule.ProtocolEnum");
+                            .value(new Any().alias("protocol").value(protocol.toString()));
                     rscv.add(pRscv);
                 }
 
@@ -1224,18 +1104,16 @@ public class TranslatorEngine {
     }
 
     public ResourceCandidateCreate
-    buildPnfdResourceCandidate(String pnfdId, Pair<String, String> pair, ResourceSpecification rs) {
+    buildPnfdResourceCandidate(String name, Pair<String, String> pair, ResourceSpecification rs) {
         return new ResourceCandidateCreate()
-                .name("pnfd:" + pnfdId)
+                .name("pnfd:" + name)
                 .lastUpdate(OffsetDateTime.ofInstant(Instant.now(), ZoneId.of("UTC")))
                 .category(Collections.singletonList(new ResourceCategoryRef()
-                        .name(Kind.PNF.name())
                         .href(pair.getFirst())
                         .id(pair.getSecond())))
                 .resourceSpecification(new ResourceSpecificationRef()
                         .id(rs.getId())
-                        .href(rs.getHref())
-                        .name("pnfd specification: " + pnfdId));
+                        .href(rs.getHref()));
     }
 
     public ServiceSpecificationCreate buildNsdServiceSpecification(Nsd nsd,
@@ -1259,19 +1137,15 @@ public class TranslatorEngine {
         List<ResourceSpecificationRef> rsRefs = new ArrayList<>();
 
         for(ResourceSpecificationRef vnfdRef : vnfdRefs) {
-            String vnfdRefId = vnfdRef.getId();
             rsRefs.add(new ResourceSpecificationRef()
-                    .id(vnfdRefId)
-                    .href(vnfdRef.getHref())
-                    .name("vnfd specification: " + vnfdRefId));
+                    .id(vnfdRef.getId())
+                    .href(vnfdRef.getHref()));
         }
 
         for(ResourceSpecificationRef pnfdRef : pnfdRefs) {
-            String pnfdRefId = pnfdRef.getId();
             rsRefs.add(new ResourceSpecificationRef()
-                    .id(pnfdRefId)
-                    .href(pnfdRef.getHref())
-                    .name("pnfd specification: " + pnfdRefId));
+                    .id(pnfdRef.getId())
+                    .href(pnfdRef.getHref()));
         }
 
         ssc.setResourceSpecification(rsRefs);
@@ -1279,23 +1153,17 @@ public class TranslatorEngine {
         List<ServiceSpecRelationship> ssrRefs = new ArrayList<>();
 
         for(ServiceSpecificationRef nsdRef : nsdRefs) {
-            String nsdRefId = nsdRef.getId();
             ssrRefs.add(new ServiceSpecRelationship()
-                    .id(nsdRefId)
-                    .href(nsdRef.getHref())
-                    .name("nsd specification: " + nsdRefId)
-                    .relationshipType("nested"));
+                    .id(nsdRef.getId())
+                    .href(nsdRef.getHref()));
         }
 
         ssc.setServiceSpecRelationship(ssrRefs);
 
         ServiceSpecCharacteristic sscNsdId = new ServiceSpecCharacteristic()
-                .configurable(false)
-                .extensible(false)
-                .isUnique(true)
                 .name("nsdId")
                 .serviceSpecCharacteristicValue(Collections.singletonList(new ServiceSpecCharacteristicValue()
-                        .value(new Any().alias("nsdId").value(nsdId)).valueType("String")));
+                        .value(new Any().alias("nsdId").value(nsdId))));
 
         serviceSpecCharacteristics.add(sscNsdId);
 
@@ -1312,10 +1180,7 @@ public class TranslatorEngine {
                 }
 
                 ServiceSpecCharacteristic sscNsdSapd = new ServiceSpecCharacteristic()
-                        .configurable(true)
                         .description("sapd " + nsdSapdId)
-                        .extensible(true)
-                        .isUnique(true)
                         .name(nsdSapdId);
 
                 List<ServiceSpecCharacteristicValue> sscv = new ArrayList<>();
@@ -1325,9 +1190,7 @@ public class TranslatorEngine {
                     log.debug("null virtual-link-desc, skipping value.");
                 else {
                     ServiceSpecCharacteristicValue vldSscv = new ServiceSpecCharacteristicValue()
-                            .value(new Any().alias("virtual-link-desc")
-                                    .value(virtualLinkDesc))
-                            .valueType("String");
+                            .value(new Any().alias("virtual-link-desc").value(virtualLinkDesc));
                     sscv.add(vldSscv);
                 }
 
@@ -1354,9 +1217,7 @@ public class TranslatorEngine {
                     }
 
                     ServiceSpecCharacteristicValue vnfSscv = new ServiceSpecCharacteristicValue()
-                            .value(new Any().alias("vnf")
-                                    .value(value))
-                            .valueType("VnfAssociatedCpdId");
+                            .value(new Any().alias("vnf").value(value));
                     sscv.add(vnfSscv);
                 }
 
@@ -1383,9 +1244,7 @@ public class TranslatorEngine {
                     }
 
                     ServiceSpecCharacteristicValue pnfSscv = new ServiceSpecCharacteristicValue()
-                            .value(new Any().alias("pnf")
-                                    .value(value))
-                            .valueType("PnfAssociatedCpdId");
+                            .value(new Any().alias("pnf").value(value));
                     sscv.add(pnfSscv);
                 }
 
@@ -1412,9 +1271,7 @@ public class TranslatorEngine {
                     }
 
                     ServiceSpecCharacteristicValue nsSscv = new ServiceSpecCharacteristicValue()
-                            .value(new Any().alias("ns")
-                                    .value(value))
-                            .valueType("NsAssociatedCpdId");
+                            .value(new Any().alias("ns").value(value));
                     sscv.add(nsSscv);
                 }
 
@@ -1437,10 +1294,7 @@ public class TranslatorEngine {
                 }
 
                 ServiceSpecCharacteristic sscVld = new ServiceSpecCharacteristic()
-                        .configurable(true)
                         .description("virtual-link-desc " + virtualLinkDescId)
-                        .extensible(true)
-                        .isUnique(true)
                         .name(virtualLinkDescId);
 
                 List<ServiceSpecCharacteristicValue> sscv = new ArrayList<>();
@@ -1455,8 +1309,7 @@ public class TranslatorEngine {
                     else {
                         ServiceSpecCharacteristicValue lpSscv = new ServiceSpecCharacteristicValue()
                                 .value(new Any().alias("connectivity-type")
-                                        .value("layer-protocol: " + layerProtocols.toString()))
-                                .valueType("ConnectivityTypeSchema");
+                                        .value("layer-protocol: " + layerProtocols.toString()));
                         sscv.add(lpSscv);
                     }
                 }
@@ -1519,9 +1372,7 @@ public class TranslatorEngine {
                         }
 
                         ServiceSpecCharacteristicValue dfSscv = new ServiceSpecCharacteristicValue()
-                                .value(new Any().alias("df " + virtualLinkDescDfId)
-                                        .value(value))
-                                .valueType("VirtualLinkDescDf");
+                                .value(new Any().alias("df " + virtualLinkDescDfId).value(value));
                         sscv.add(dfSscv);
                     }
                 }
@@ -1545,10 +1396,7 @@ public class TranslatorEngine {
                 }
 
                 ServiceSpecCharacteristic sscDf = new ServiceSpecCharacteristic()
-                        .configurable(true)
                         .description("df " + dfId)
-                        .extensible(true)
-                        .isUnique(true)
                         .name(dfId);
 
                 List<ServiceSpecCharacteristicValue> sscv = new ArrayList<>();
@@ -1681,9 +1529,7 @@ public class TranslatorEngine {
                         }
 
                         ServiceSpecCharacteristicValue vpiSscv = new ServiceSpecCharacteristicValue()
-                                .value(new Any().alias("vnf-profile " + vnfProfileItemId)
-                                        .value(value))
-                                .valueType("VnfProfileItem");
+                                .value(new Any().alias("vnf-profile " + vnfProfileItemId).value(value));
                         sscv.add(vpiSscv);
                     }
                 }
@@ -1774,9 +1620,7 @@ public class TranslatorEngine {
                         }
 
                         ServiceSpecCharacteristicValue nppSscv = new ServiceSpecCharacteristicValue()
-                                .value(new Any().alias("pnf-profile " + nsdPnfprofileId)
-                                        .value(value))
-                                .valueType("NsdPnfprofile");
+                                .value(new Any().alias("pnf-profile " + nsdPnfprofileId).value(value));
                         sscv.add(nppSscv);
                     }
                 }
@@ -1907,9 +1751,7 @@ public class TranslatorEngine {
                         }
 
                         ServiceSpecCharacteristicValue nspSscv = new ServiceSpecCharacteristicValue()
-                                .value(new Any().alias("ns-profile " + nsdNsprofileId)
-                                .value(value))
-                                .valueType("NsdNsprofile");
+                                .value(new Any().alias("ns-profile " + nsdNsprofileId).value(value));
                         sscv.add(nspSscv);
                     }
                 }
@@ -1979,9 +1821,7 @@ public class TranslatorEngine {
                         }
 
                         ServiceSpecCharacteristicValue vlpiSscv = new ServiceSpecCharacteristicValue()
-                                .value(new Any().alias("virtual-link-profile " + virtualLinkProfileItemId)
-                                        .value(value))
-                                .valueType("virtualLinkProfileItemId");
+                                .value(new Any().alias("virtual-link-profile " + virtualLinkProfileItemId).value(value));
                         sscv.add(vlpiSscv);
                     }
                 }
@@ -2077,9 +1917,7 @@ public class TranslatorEngine {
                         }
 
                         ServiceSpecCharacteristicValue nilSscv = new ServiceSpecCharacteristicValue()
-                                .value(new Any().alias("ns-instantiation-level " + nsInstantiationlevelId)
-                                        .value(value))
-                                .valueType("NsdNsinstantiationlevel");
+                                .value(new Any().alias("ns-instantiation-level " + nsInstantiationlevelId).value(value));
                         sscv.add(nilSscv);
                     }
                 }
@@ -2095,17 +1933,15 @@ public class TranslatorEngine {
         return ssc;
     }
 
-    public ServiceCandidateCreate buildNsdServiceCandidate(String nsdId, Pair<String, String> pair, ServiceSpecification ss) {
+    public ServiceCandidateCreate buildNsdServiceCandidate(String name, Pair<String, String> pair, ServiceSpecification ss) {
         return new ServiceCandidateCreate()
-                .name("nsd:" + nsdId)
+                .name(name)
                 .lastUpdate(OffsetDateTime.ofInstant(Instant.now(), ZoneId.of("UTC")))
                 .category(Collections.singletonList(new ServiceCategoryRef()
-                        .name(Kind.NS.name())
                         .href(pair.getFirst())
                         .id(pair.getSecond())))
                 .serviceSpecification(new ServiceSpecificationRef()
                         .id(ss.getId())
-                        .href(ss.getHref())
-                        .name("nsd specification: " + nsdId));
+                        .href(ss.getHref()));
     }
 }

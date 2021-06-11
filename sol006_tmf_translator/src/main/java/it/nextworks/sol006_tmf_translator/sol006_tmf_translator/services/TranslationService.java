@@ -153,7 +153,7 @@ public class TranslationService {
         Pair<String, String> pair = getCategoryOrCreateIfNotExists(Kind.VNF,
                 "/resourceCatalogManagement/v2/resourceCategory/filter");
 
-        ResourceCandidateCreate rcc = translatorEngine.buildVnfdResourceCandidate(vnfdId, pair, rs);
+        ResourceCandidateCreate rcc = translatorEngine.buildVnfdResourceCandidate(vnfd.getProductName(), pair, rs);
 
         log.info("Posting Resource Candidate to Offer Catalog for vnfd " + vnfdId + ".");
 
@@ -224,7 +224,7 @@ public class TranslationService {
         Pair<String, String> pair = getCategoryOrCreateIfNotExists(Kind.PNF,
                 "/resourceCatalogManagement/v2/resourceCategory/filter");
 
-        ResourceCandidateCreate rcc = translatorEngine.buildPnfdResourceCandidate(pnfdId, pair, rs);
+        ResourceCandidateCreate rcc = translatorEngine.buildPnfdResourceCandidate(pnfd.getName(), pair, rs);
 
         log.info("Posting Resource Candidate to Offer Catalog for pnfd " + pnfdId + ".");
 
@@ -479,7 +479,7 @@ public class TranslationService {
         Pair<String, String> pair = getCategoryOrCreateIfNotExists(Kind.NS,
                 "/serviceCatalogManagement/v4/serviceCategory/filter");
 
-        ServiceCandidateCreate scc = translatorEngine.buildNsdServiceCandidate(nsdId, pair, ss);
+        ServiceCandidateCreate scc = translatorEngine.buildNsdServiceCandidate(nsd.getName(), pair, ss);
 
         log.info("Posting Service Candidate to Offer Catalog for nsd " + nsdId + ".");
 
