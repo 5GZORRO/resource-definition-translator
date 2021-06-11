@@ -51,13 +51,13 @@ public class TranslatorDescSourceInteractionService {
 
     private String getRequestPath(Kind kind) {
         switch(kind) {
-            case VNFD:
+            case VNF:
                 return sourceVnfdPath;
 
-            case PNFD:
+            case PNF:
                 return sourcePnfdPath;
 
-            case NSD:
+            case NS:
                 return sourceNsPath;
 
             default:

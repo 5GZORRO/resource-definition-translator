@@ -96,13 +96,13 @@ public class VnfdTranslatorController implements VnfdTranslatorInterface {
         }
 
         try {
-            translatorDescSourceInteractionService.getFromSource(Kind.VNFD, vnfdId);
+            translatorDescSourceInteractionService.getFromSource(Kind.VNF, vnfdId);
         } catch (SourceException e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new ErrMsg(e.getMessage()));
         } catch (MissingEntityOnSourceException e) {
             log.info("Posting vnfd " + vnfdId + " to descriptors source.");
             try {
-                translatorDescSourceInteractionService.postOnSource(Kind.VNFD, objectMapper.writeValueAsString(vnfd));
+                translatorDescSourceInteractionService.postOnSource(Kind.VNF, objectMapper.writeValueAsString(vnfd));
                 log.info("vnfd " + vnfdId + " posted on descriptors source.");
             } catch (UnsupportedEncodingException | SourceException | JsonProcessingException ee) {
                 return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new ErrMsg(ee.getMessage()));
@@ -130,7 +130,7 @@ public class VnfdTranslatorController implements VnfdTranslatorInterface {
         HttpEntity httpEntity;
         try {
             log.info("Retrieving vnfd " + vnfdId + " from descriptors source.");
-            httpEntity = translatorDescSourceInteractionService.getFromSource(Kind.VNFD, vnfdId);
+            httpEntity = translatorDescSourceInteractionService.getFromSource(Kind.VNF, vnfdId);
         } catch (SourceException e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new ErrMsg(e.getMessage()));
         } catch (MissingEntityOnSourceException e) {

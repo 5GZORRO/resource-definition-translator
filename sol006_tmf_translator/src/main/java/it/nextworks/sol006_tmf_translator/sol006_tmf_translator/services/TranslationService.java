@@ -70,9 +70,10 @@ public class TranslationService {
     @PostConstruct
     private void initializeOfferCatalog() {
         try {
-            getCategoryOrCreateIfNotExists(Kind.VNFD, "/resourceCatalogManagement/v2/resourceCategory/filter");
-            getCategoryOrCreateIfNotExists(Kind.PNFD, "/resourceCatalogManagement/v2/resourceCategory/filter");
-            getCategoryOrCreateIfNotExists(Kind.NSD, "/serviceCatalogManagement/v4/serviceCategory/filter");
+            getCategoryOrCreateIfNotExists(Kind.VNF, "/resourceCatalogManagement/v2/resourceCategory/filter");
+            getCategoryOrCreateIfNotExists(Kind.PNF, "/resourceCatalogManagement/v2/resourceCategory/filter");
+            getCategoryOrCreateIfNotExists(Kind.NS, "/serviceCatalogManagement/v4/serviceCategory/filter");
+            getCategoryOrCreateIfNotExists(Kind.VS, "/serviceCatalogManagement/v4/serviceCategory/filter");
         } catch (CatalogException | IOException e) {
             log.error(e.getMessage());
             SpringApplication.exit(applicationContext, () -> -1);
@@ -86,12 +87,13 @@ public class TranslationService {
         try {
             HttpEntity en = this.translatorCatalogInteractionService.isCategoryPresent(kind, requestPath);
             switch(kind) {
-                case VNFD:
-                case PNFD:
+                case VNF:
+                case PNF:
                     ResourceCategory rc = objectMapper.readValue(EntityUtils.toString(en), ResourceCategory.class);
                     return new Pair<>(rc.getHref(), rc.getId());
 
-                case NSD:
+                case NS:
+                case VS:
                     ServiceCategory sc = objectMapper.readValue(EntityUtils.toString(en), ServiceCategory.class);
                     return new Pair<>(sc.getHref(), sc.getId());
 
@@ -102,8 +104,8 @@ public class TranslationService {
             log.info("Posting Category " + name + " to Offer Catalog.");
 
             switch(kind) {
-                case VNFD:
-                case PNFD:
+                case VNF:
+                case PNF:
                     ResourceCategoryCreate rcc = new ResourceCategoryCreate()
                             .name(name)
                             .lastUpdate(OffsetDateTime.ofInstant(Instant.now(), ZoneId.of("UTC")));
@@ -115,7 +117,8 @@ public class TranslationService {
                     log.info("Category " + name + " posted to Offer Catalog.");
                     return new Pair<>(rc.getHref(), rc.getId());
 
-                case NSD:
+                case NS:
+                case VS:
                     ServiceCategoryCreate scc = new ServiceCategoryCreate()
                             .name(name)
                             .lastUpdate(OffsetDateTime.ofInstant(Instant.now(), ZoneId.of("UTC")));
@@ -147,7 +150,7 @@ public class TranslationService {
         ResourceSpecification rs =
                 objectMapper.readValue(EntityUtils.toString(httpEntity), ResourceSpecification.class);
 
-        Pair<String, String> pair = getCategoryOrCreateIfNotExists(Kind.VNFD,
+        Pair<String, String> pair = getCategoryOrCreateIfNotExists(Kind.VNF,
                 "/resourceCatalogManagement/v2/resourceCategory/filter");
 
         ResourceCandidateCreate rcc = translatorEngine.buildVnfdResourceCandidate(vnfdId, pair, rs);
@@ -218,7 +221,7 @@ public class TranslationService {
                 .post(rscJson, "/resourceCatalogManagement/v2/resourceSpecification");
         ResourceSpecification rs = objectMapper.readValue(EntityUtils.toString(httpEntity), ResourceSpecification.class);
 
-        Pair<String, String> pair = getCategoryOrCreateIfNotExists(Kind.PNFD,
+        Pair<String, String> pair = getCategoryOrCreateIfNotExists(Kind.PNF,
                 "/resourceCatalogManagement/v2/resourceCategory/filter");
 
         ResourceCandidateCreate rcc = translatorEngine.buildPnfdResourceCandidate(pnfdId, pair, rs);
@@ -283,11 +286,11 @@ public class TranslationService {
         HttpEntity httpEntity = translatorDescSourceInteractionService.getFromSource(kind, resource);
 
         switch(kind) {
-            case VNFD:
+            case VNF:
                 Vnfd vnfd = objectMapper.readValue(EntityUtils.toString(httpEntity), Vnfd.class);
                 return translateVnfd(vnfd).getFirst().getResourceSpecification();
 
-            case PNFD:
+            case PNF:
                 Pnfd pnfd = objectMapper.readValue(EntityUtils.toString(httpEntity), Pnfd.class);
                 return translatePnfd(pnfd).getFirst().getResourceSpecification();
 
@@ -300,7 +303,7 @@ public class TranslationService {
             throws MissingEntityOnSourceException, SourceException, IOException,
             CatalogException, MissingEntityOnCatalogException {
 
-        HttpEntity httpEntity = translatorDescSourceInteractionService.getFromSource(Kind.NSD, service);
+        HttpEntity httpEntity = translatorDescSourceInteractionService.getFromSource(Kind.NS, service);
         Nsd nsd = objectMapper.readValue(EntityUtils.toString(httpEntity), Nsd.class);
         return translateNsd(nsd).getFirst().getServiceSpecification();
     }
@@ -450,12 +453,12 @@ public class TranslationService {
         List<String> vnfds = nsd.getVnfdId();
         List<ResourceSpecificationRef> vnfdRefs = new ArrayList<>();
         if(vnfds != null)
-            vnfdRefs = areResourcesPresent(Kind.VNFD, vnfds);
+            vnfdRefs = areResourcesPresent(Kind.VNF, vnfds);
 
         List<String> pnfds = nsd.getPnfdId();
         List<ResourceSpecificationRef> pnfdRefs = new ArrayList<>();
         if(pnfds != null)
-            pnfdRefs = areResourcesPresent(Kind.PNFD, pnfds);
+            pnfdRefs = areResourcesPresent(Kind.PNF, pnfds);
 
         List<String> nsdIds = nsd.getNestedNsdId();
         List<ServiceSpecificationRef> nsdRefs = new ArrayList<>();
@@ -473,7 +476,7 @@ public class TranslationService {
                 .post(sscJson, "/serviceCatalogManagement/v4/serviceSpecification");
         ServiceSpecification ss = objectMapper.readValue(EntityUtils.toString(httpEntity), ServiceSpecification.class);
 
-        Pair<String, String> pair = getCategoryOrCreateIfNotExists(Kind.NSD,
+        Pair<String, String> pair = getCategoryOrCreateIfNotExists(Kind.NS,
                 "/serviceCatalogManagement/v4/serviceCategory/filter");
 
         ServiceCandidateCreate scc = translatorEngine.buildNsdServiceCandidate(nsdId, pair, ss);

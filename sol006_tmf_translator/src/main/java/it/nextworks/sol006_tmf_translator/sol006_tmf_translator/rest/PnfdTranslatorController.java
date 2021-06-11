@@ -96,13 +96,13 @@ public class PnfdTranslatorController implements PnfdTranslatorInterface {
         }
 
         try {
-            translatorDescSourceInteractionService.getFromSource(Kind.PNFD, pnfdId);
+            translatorDescSourceInteractionService.getFromSource(Kind.PNF, pnfdId);
         } catch (SourceException e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new ErrMsg(e.getMessage()));
         } catch (MissingEntityOnSourceException e) {
             log.info("Posting pnfd " + pnfdId + " to descriptors source.");
             try {
-                translatorDescSourceInteractionService.postOnSource(Kind.PNFD, objectMapper.writeValueAsString(pnfd));
+                translatorDescSourceInteractionService.postOnSource(Kind.PNF, objectMapper.writeValueAsString(pnfd));
                 log.info("pnfd " + pnfdId + " posted on descriptors source.");
             } catch (UnsupportedEncodingException | SourceException | JsonProcessingException ee) {
                 return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new ErrMsg(ee.getMessage()));
@@ -130,7 +130,7 @@ public class PnfdTranslatorController implements PnfdTranslatorInterface {
         HttpEntity httpEntity;
         try {
             log.info("Retrieving pnfd " + pnfdId + " from descriptors source.");
-            httpEntity = translatorDescSourceInteractionService.getFromSource(Kind.PNFD, pnfdId);
+            httpEntity = translatorDescSourceInteractionService.getFromSource(Kind.PNF, pnfdId);
         } catch (SourceException e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new ErrMsg(e.getMessage()));
         } catch (MissingEntityOnSourceException e) {

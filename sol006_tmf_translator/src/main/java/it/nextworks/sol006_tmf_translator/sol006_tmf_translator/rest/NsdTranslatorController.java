@@ -99,13 +99,13 @@ public class NsdTranslatorController implements NsdTranslatorInterface {
         }
 
         try {
-            translatorDescSourceInteractionService.getFromSource(Kind.NSD, nsdId);
+            translatorDescSourceInteractionService.getFromSource(Kind.NS, nsdId);
         } catch (SourceException e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new ErrMsg(e.getMessage()));
         } catch (MissingEntityOnSourceException e) {
             log.info("Posting nsd " + nsdId + " to descriptors source.");
             try {
-                translatorDescSourceInteractionService.postOnSource(Kind.NSD, objectMapper.writeValueAsString(nsd));
+                translatorDescSourceInteractionService.postOnSource(Kind.NS, objectMapper.writeValueAsString(nsd));
                 log.info("nsd " + nsdId + " posted on descriptors source.");
             } catch (UnsupportedEncodingException | SourceException | JsonProcessingException ee) {
                 return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new ErrMsg(ee.getMessage()));
@@ -133,7 +133,7 @@ public class NsdTranslatorController implements NsdTranslatorInterface {
         HttpEntity httpEntity;
         try {
             log.info("Retrieving nsd " + nsdId + " from descriptors source.");
-            httpEntity = translatorDescSourceInteractionService.getFromSource(Kind.NSD, nsdId);
+            httpEntity = translatorDescSourceInteractionService.getFromSource(Kind.NS, nsdId);
         } catch (SourceException e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new ErrMsg(e.getMessage()));
         } catch (MissingEntityOnSourceException e) {
