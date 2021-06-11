@@ -25,7 +25,8 @@ public class TranslatorEngine {
 
     public ResourceSpecificationCreate buildVnfdResourceSpecification(Vnfd vnfd) {
 
-        log.info("Translating vnfd " + vnfd.getId() + ".");
+        String vnfdId = vnfd.getId();
+        log.info("Translating vnfd " + vnfdId + ".");
 
         String vnfdProductName = vnfd.getProductName();
         String version = vnfd.getVersion();
@@ -36,6 +37,16 @@ public class TranslatorEngine {
                 .lastUpdate(OffsetDateTime.ofInstant(Instant.now(), ZoneId.of("UTC")));
 
         List<ResourceSpecCharacteristic> resourceSpecCharacteristics = new ArrayList<>();
+
+        ResourceSpecCharacteristic rscVnfdId = new ResourceSpecCharacteristic()
+                .configurable(false)
+                .extensible(false)
+                .isUnique(true)
+                .name("vnfdId")
+                .resourceSpecCharacteristicValue(Collections.singletonList(new ResourceSpecCharacteristicValue()
+                        .value(new Any().alias("vnfdId").value(vnfdId)).valueType("String")));
+
+        resourceSpecCharacteristics.add(rscVnfdId);
 
         List<String> vnfmInfo = vnfd.getVnfmInfo();
         if(vnfmInfo == null)
@@ -855,6 +866,16 @@ public class TranslatorEngine {
 
         List<ResourceSpecCharacteristic> resourceSpecCharacteristics = new ArrayList<>();
 
+        ResourceSpecCharacteristic rscPnfdId = new ResourceSpecCharacteristic()
+                .configurable(false)
+                .extensible(false)
+                .isUnique(true)
+                .name("pnfdId")
+                .resourceSpecCharacteristicValue(Collections.singletonList(new ResourceSpecCharacteristicValue()
+                        .value(new Any().alias("pnfdId").value(pnfdId)).valueType("String")));
+
+        resourceSpecCharacteristics.add(rscPnfdId);
+
         List<Cpd> extCpds = pnfd.getExtCpd();
         if(extCpds == null)
             log.debug("null ext-cpd list, skipping characteristics.");
@@ -1222,7 +1243,8 @@ public class TranslatorEngine {
                                                                    List<ResourceSpecificationRef> pnfdRefs,
                                                                    List<ServiceSpecificationRef> nsdRefs) {
 
-        log.info("Translating nsd " + nsd.getId() + ".");
+        String nsdId = nsd.getId();
+        log.info("Translating nsd " + nsdId + ".");
 
         String nsdName = nsd.getName();
         String nsdVersion = nsd.getVersion();
@@ -1266,6 +1288,16 @@ public class TranslatorEngine {
         }
 
         ssc.setServiceSpecRelationship(ssrRefs);
+
+        ServiceSpecCharacteristic sscNsdId = new ServiceSpecCharacteristic()
+                .configurable(false)
+                .extensible(false)
+                .isUnique(true)
+                .name("nsdId")
+                .serviceSpecCharacteristicValue(Collections.singletonList(new ServiceSpecCharacteristicValue()
+                        .value(new Any().alias("nsdId").value(nsdId)).valueType("String")));
+
+        serviceSpecCharacteristics.add(sscNsdId);
 
         List<NsdSapd> nsdSapds = nsd.getSapd();
         if(nsdSapds == null)
@@ -1763,11 +1795,11 @@ public class TranslatorEngine {
 
                         String value = "";
 
-                        String nsdId = nsdNsprofile.getNsdId();
-                        if(nsdId == null)
+                        String nsdNsProfileNsdId = nsdNsprofile.getNsdId();
+                        if(nsdNsProfileNsdId == null)
                             log.debug("null ns-profile nsd-id, not inserted in value field.");
                         else
-                            value = "nsd-id: " + nsdId;
+                            value = "nsd-id: " + nsdNsProfileNsdId;
 
                         String instantiationLevelId = nsdNsprofile.getInstantiationLevelId();
                         if(instantiationLevelId == null)
