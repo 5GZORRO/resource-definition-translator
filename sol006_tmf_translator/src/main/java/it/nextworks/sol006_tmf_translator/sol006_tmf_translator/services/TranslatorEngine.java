@@ -16,6 +16,7 @@ import org.threeten.bp.ZoneId;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 public class TranslatorEngine {
@@ -80,305 +81,240 @@ public class TranslatorEngine {
 
                 List<ResourceSpecCharacteristicValue> rscvs = new ArrayList<>();
 
-                List<VnfdVduIntCpdItem> vnfdVduIntCpdItems = vnfdVdu.getIntCpd();
-                if(vnfdVduIntCpdItems == null)
-                    log.debug("null int-cpd list, skipping values.");
-                else {
-                    for(VnfdVduIntCpdItem vnfdVduIntCpdItem : vnfdVduIntCpdItems) {
-
-                        String vnfdVduIntCpdItemId = vnfdVduIntCpdItem.getId();
-                        if(vnfdVduIntCpdItemId == null) {
-                            log.debug("null int-cpd item id, skipping value.");
-                            continue;
-                        }
-
-                        String value = "";
-
-                        String intVirtualLinkDesc = vnfdVduIntCpdItem.getIntVirtualLinkDesc();
-                        if(intVirtualLinkDesc == null)
-                            log.debug("null int-cpd int-virtual-link-desc, not inserted in value filed.");
-                        else
-                            value = "int-virtual-link-desc: " + intVirtualLinkDesc;
-
-                        List<String> layerProtocols = vnfdVduIntCpdItem.getLayerProtocol();
-                        if(layerProtocols == null)
-                            log.debug("null int-cpd layer-protocol list, not inserted in value field.");
-                        else {
-                            if(!value.isEmpty())
-                                value = value + ", ";
-
-                            value = value + "layer-protocol: " + layerProtocols.toString();
-                        }
-
-                        ResourceSpecCharacteristicValue rscv = new ResourceSpecCharacteristicValue()
-                                .value(new Any().alias("int-cpd " + vnfdVduIntCpdItemId).value(value));
-                        rscvs.add(rscv);
-                    }
-                }
-
                 String virtualComputeDesc = vnfdVdu.getVirtualComputeDesc();
                 if(virtualComputeDesc == null)
                     log.debug("null virtual-compute-desc, skipping value.");
                 else {
-                    ResourceSpecCharacteristicValue vcdRscv = new ResourceSpecCharacteristicValue()
-                            .value(new Any().alias("virtual-compute-desc").value(virtualComputeDesc));
-                    rscvs.add(vcdRscv);
+                    List<VnfdVirtualcomputedesc> virtualcomputedescs = vnfd.getVirtualComputeDesc();
+                    if(virtualcomputedescs == null)
+                        log.debug("null virtual-compute-desc list, skipping value.");
+                    else {
+                        List<VnfdVirtualcomputedesc> tmp =
+                                virtualcomputedescs.stream()
+                                        .filter(vnfdVirtualcomputedesc ->
+                                                vnfdVirtualcomputedesc.getId().equals(virtualComputeDesc))
+                                        .collect(Collectors.toList());
+                        if(tmp.size() != 1)
+                            log.debug("virtual-compute-desc list for id " + virtualComputeDesc +
+                                    ", skipping value.");
+                        else {
+                            VnfdVirtualcomputedesc vnfdVirtualcomputedesc = tmp.get(0);
+
+                            VnfdVirtualmemory vnfdVirtualmemory = vnfdVirtualcomputedesc.getVirtualMemory();
+                            if(vnfdVirtualmemory == null)
+                                log.debug("null virtual-memory, skipping value.");
+                            else {
+                                String value = "";
+
+                                Double size = vnfdVirtualmemory.getSize();
+                                if(size == null)
+                                    log.debug("null virtual-memory size, not inserted in value field.");
+                                else
+                                    value = size.toString();
+
+                                ResourceSpecCharacteristicValue vmRscv = new ResourceSpecCharacteristicValue()
+                                        .value(new Any().alias("virtual-memory")
+                                                .value(value))
+                                        .unitOfMeasure("MB");
+                                rscvs.add(vmRscv);
+                            }
+
+                            VnfdVirtualcpu vnfdVirtualcpu = vnfdVirtualcomputedesc.getVirtualCpu();
+                            if(vnfdVirtualcpu == null)
+                                log.debug("null virtual-cpu, skipping value.");
+                            else {
+                                String value = "";
+
+                                String numVirtualCpu = vnfdVirtualcpu.getNumVirtualCpu();
+                                if(numVirtualCpu == null)
+                                    log.debug("null virtual-cpu num-virtual-cpu, not inserted in value field.");
+                                else
+                                    value = numVirtualCpu + " vCPU";
+
+                                String clock = vnfdVirtualcpu.getClock();
+                                if(clock == null)
+                                    log.debug("null virtual-cpu clock, not inserted in value field.");
+                                else{
+                                    if(!value.isEmpty())
+                                        value = value + ", ";
+
+                                    value = value + " @" + clock + "GHz";
+                                }
+
+                                ResourceSpecCharacteristicValue vvcRscv = new ResourceSpecCharacteristicValue()
+                                        .value(new Any().alias("virtual-cpu")
+                                                .value(value))
+                                        .unitOfMeasure("num_cpu * GHz");
+                                rscvs.add(vvcRscv);
+                            }
+                        }
+                    }
                 }
 
-                List<String> virtualStorageDesc = vnfdVdu.getVirtualStorageDesc();
-                if(virtualStorageDesc == null)
+                List<String> virtualStorageDescs = vnfdVdu.getVirtualStorageDesc();
+                if(virtualStorageDescs == null)
                     log.debug("null virtual-storage-desc list, skipping value.");
                 else {
-                    ResourceSpecCharacteristicValue vsdRscv = new ResourceSpecCharacteristicValue()
-                            .value(new Any().alias("virtual-storage-desc").value(virtualStorageDesc.toString()));
-                    rscvs.add(vsdRscv);
+                    List<VnfdVirtualstoragedesc> vnfdVirtualstoragedescs = vnfd.getVirtualStorageDesc();
+                    if(vnfdVirtualstoragedescs == null)
+                        log.debug("null virtual-storage-desc list, skipping value.");
+                    else {
+                        for(String virtualStorageDesc : virtualStorageDescs) {
+                            List<VnfdVirtualstoragedesc> tmp =
+                                    vnfdVirtualstoragedescs.stream()
+                                            .filter(virtualStorageDescItem ->
+                                                    virtualStorageDescItem.getId().equals(virtualStorageDesc))
+                                            .collect(Collectors.toList());
+                            if(tmp.size() != 1)
+                                log.debug("virtual-compute-desc list for id " + virtualComputeDesc +
+                                        ", skipping value.");
+                            else {
+                                VnfdVirtualstoragedesc vnfdVirtualstoragedesc = tmp.get(0);
+
+                                String value = "";
+
+                                String typeOfStorage = vnfdVirtualstoragedesc.getTypeOfStorage();
+                                if(typeOfStorage == null)
+                                    log.debug("null type-of-storage, skipping value.");
+                                else
+                                    value = "type of storage: " + typeOfStorage;
+
+                                String sizeOfStorage = vnfdVirtualstoragedesc.getSizeOfStorage();
+                                if(sizeOfStorage == null)
+                                    log.debug("null size-of-storage, skipping value.");
+                                else {
+                                    if(!value.isEmpty())
+                                        value = value + ", ";
+
+                                    value = value + "size: " + sizeOfStorage + "GB";
+                                }
+
+                                ResourceSpecCharacteristicValue ssRscv = new ResourceSpecCharacteristicValue()
+                                        .value(new Any().alias("storage")
+                                                .value(value));
+                                rscvs.add(ssRscv);
+                            }
+                        }
+                    }
                 }
 
                 String swImageDesc = vnfdVdu.getSwImageDesc();
                 if(swImageDesc == null)
                     log.debug("null sw-image-desc, skipping value.");
                 else {
-                    ResourceSpecCharacteristicValue sidRscv = new ResourceSpecCharacteristicValue()
-                            .value(new Any().alias("sw-image-desc").value(swImageDesc));
-                    rscvs.add(sidRscv);
+                    List<VnfdSwimagedesc> swImageDescs= vnfd.getSwImageDesc();
+                    if(swImageDescs == null)
+                        log.debug("null sw-image-desc list, skipping value.");
+                    else {
+                        List<VnfdSwimagedesc> tmp =
+                                swImageDescs.stream()
+                                        .filter(vnfdSwimagedesc ->
+                                                vnfdSwimagedesc.getId().equals(swImageDesc))
+                                        .collect(Collectors.toList());
+                        if(tmp.size() != 1)
+                            log.debug("virtual-compute-desc list for id " + virtualComputeDesc +
+                                    ", skipping value.");
+                        else {
+                            VnfdSwimagedesc vnfdSwimagedesc = tmp.get(0);
+
+                            String vnfdSwimagedescVersion = vnfdSwimagedesc.getVersion();
+                            if(vnfdSwimagedescVersion == null)
+                                log.debug("null version, skipping value");
+                            else {
+                                ResourceSpecCharacteristicValue versionRscv = new ResourceSpecCharacteristicValue()
+                                        .value(new Any().alias("sw-image-version").value(vnfdSwimagedescVersion));
+                                rscvs.add(versionRscv);
+                            }
+
+                            VnfdChecksum vnfdChecksum = vnfdSwimagedesc.getChecksum();
+                            if(vnfdChecksum == null)
+                                log.debug("null checksum, skipping value");
+                            else {
+                                String value = "";
+
+                                String algorithm = vnfdChecksum.getAlgorithm();
+                                if(algorithm == null)
+                                    log.debug("null checksum algorithm, not inserted in value field.");
+                                else
+                                    value = "algorithm: " + algorithm;
+
+                                String hash = vnfdChecksum.getHash();
+                                if(hash == null)
+                                    log.debug("null checksum hash, not inserted in value field.");
+                                else {
+                                    if(!value.isEmpty())
+                                        value = value + ", ";
+
+                                    value = value + "hash: " + hash;
+                                }
+
+                                ResourceSpecCharacteristicValue checksumRscv = new ResourceSpecCharacteristicValue()
+                                        .value(new Any().alias("sw-image-checksum").value(value));
+                                rscvs.add(checksumRscv);
+                            }
+
+                            ContainerFormatEnum containerFormat = vnfdSwimagedesc.getContainerFormat();
+                            if(containerFormat == null)
+                                log.debug("null container-format, skipping value");
+                            else {
+                                ResourceSpecCharacteristicValue cfRscv = new ResourceSpecCharacteristicValue()
+                                        .value(new Any().alias("sw-image-container-format").value(containerFormat.toString()));
+                                rscvs.add(cfRscv);
+                            }
+
+                            DiskFormatEnum diskFormat = vnfdSwimagedesc.getDiskFormat();
+                            if(diskFormat == null)
+                                log.debug("null disk-format, skipping value.");
+                            else {
+                                ResourceSpecCharacteristicValue dfRscv = new ResourceSpecCharacteristicValue()
+                                        .value(new Any().alias("sw-image-disk-format").value(diskFormat.toString()));
+                                rscvs.add(dfRscv);
+                            }
+
+                            String minDisk = vnfdSwimagedesc.getMinDisk();
+                            if(minDisk == null)
+                                log.debug("null min-disk, skipping value.");
+                            else {
+                                ResourceSpecCharacteristicValue mdRscv = new ResourceSpecCharacteristicValue()
+                                        .value(new Any().alias("sw-image-min-disk").value(minDisk));
+                                rscvs.add(mdRscv);
+                            }
+
+                            Double minRam = vnfdSwimagedesc.getMinRam();
+                            if(minRam == null)
+                                log.debug("null min-ram, skipping value.");
+                            else {
+                                ResourceSpecCharacteristicValue mrRscv = new ResourceSpecCharacteristicValue()
+                                        .value(new Any().alias("sw-image-min-ram")
+                                                .value(minRam.toString()))
+                                        .unitOfMeasure("MB");
+                                rscvs.add(mrRscv);
+                            }
+
+                            String size = vnfdSwimagedesc.getSize();
+                            if(size == null)
+                                log.debug("null size, skipping value.");
+                            else {
+                                ResourceSpecCharacteristicValue sRscv = new ResourceSpecCharacteristicValue()
+                                        .value(new Any().alias("sw-image-size").value(size));
+                                rscvs.add(sRscv);
+                            }
+
+                            String image = vnfdSwimagedesc.getImage();
+                            if(image == null)
+                                log.debug("null image, skipping value.");
+                            else {
+                                ResourceSpecCharacteristicValue iRscv = new ResourceSpecCharacteristicValue()
+                                        .value(new Any().alias("sw-image").value(image));
+                                rscvs.add(iRscv);
+                            }
+                        }
+                    }
                 }
 
                 rscVnfVdu.setResourceSpecCharacteristicValue(rscvs);
 
                 resourceSpecCharacteristics.add(rscVnfVdu);
-            }
-        }
-
-        List<VnfdVirtualcomputedesc> vnfdVirtualcomputedescs = vnfd.getVirtualComputeDesc();
-        if(vnfdVirtualcomputedescs == null)
-            log.debug("null virtual-compute-desc list, skipping characteristics.");
-        else {
-            for(VnfdVirtualcomputedesc vnfdVirtualcomputedesc : vnfdVirtualcomputedescs) {
-
-                String vnfdVirtualcomputedescId = vnfdVirtualcomputedesc.getId();
-                if(vnfdVirtualcomputedescId == null) {
-                    log.debug("null virtual-compute-desc item id, skipping characteristic.");
-                    continue;
-                }
-
-                ResourceSpecCharacteristic rscVvcd = new ResourceSpecCharacteristic()
-                        .description("virtual-compute-desc " + vnfdVirtualcomputedescId)
-                        .name(vnfdVirtualcomputedescId);
-
-                List<ResourceSpecCharacteristicValue> rscvs = new ArrayList<>();
-
-                VnfdVirtualmemory vnfdVirtualmemory = vnfdVirtualcomputedesc.getVirtualMemory();
-                if(vnfdVirtualmemory == null)
-                    log.debug("null virtual-memory, skipping value.");
-                else {
-                    String value = "";
-
-                    Double size = vnfdVirtualmemory.getSize();
-                    if(size == null)
-                        log.debug("null virtual-memory size, not inserted in value field.");
-                    else
-                        value = size.toString();
-
-                    ResourceSpecCharacteristicValue vmRscv = new ResourceSpecCharacteristicValue()
-                            .value(new Any().alias("virtual-memory")
-                                    .value(value))
-                            .unitOfMeasure("MB");
-                    rscvs.add(vmRscv);
-                }
-
-                VnfdVirtualcpu vnfdVirtualcpu = vnfdVirtualcomputedesc.getVirtualCpu();
-                if(vnfdVirtualcpu == null)
-                    log.debug("null virtual-cpu, skipping value.");
-                else {
-                    String value = "";
-
-                    String numVirtualCpu = vnfdVirtualcpu.getNumVirtualCpu();
-                    if(numVirtualCpu == null)
-                        log.debug("null virtual-cpu num-virtual-cpu, not inserted in value field.");
-                    else
-                        value = "num-virtual-cpu: " + numVirtualCpu;
-
-                    String clock = vnfdVirtualcpu.getClock();
-                    if(clock == null)
-                        log.debug("null virtual-cpu clock, not inserted in value field.");
-                    else{
-                        if(!value.isEmpty())
-                            value = value + ", ";
-
-                        value = value + "clock: " + clock;
-                    }
-
-                    ResourceSpecCharacteristicValue vvcRscv = new ResourceSpecCharacteristicValue()
-                            .value(new Any().alias("virtual-cpu")
-                                    .value(value))
-                            .unitOfMeasure("num_cpu * GHz");
-                    rscvs.add(vvcRscv);
-                }
-
-                rscVvcd.setResourceSpecCharacteristicValue(rscvs);
-
-                resourceSpecCharacteristics.add(rscVvcd);
-            }
-        }
-
-        List<VnfdVirtualstoragedesc> vnfdVirtualstoragedescs = vnfd.getVirtualStorageDesc();
-        if(vnfdVirtualstoragedescs == null)
-            log.debug("null virtual-storage-desc list, skipping characteristics.");
-        else {
-            for(VnfdVirtualstoragedesc vnfdVirtualstoragedesc : vnfdVirtualstoragedescs) {
-
-                String vnfdVirtualstoragedescId = vnfdVirtualstoragedesc.getId();
-                if(vnfdVirtualstoragedescId == null) {
-                    log.debug("null virtual-storage-desc item id, skipping characteristic.");
-                    continue;
-                }
-
-                ResourceSpecCharacteristic rscVvsd = new ResourceSpecCharacteristic()
-                        .description("virtual-storage-desc " + vnfdVirtualstoragedescId)
-                        .name(vnfdVirtualstoragedescId);
-
-                List<ResourceSpecCharacteristicValue> rscvs = new ArrayList<>();
-
-                String typeOfStorage = vnfdVirtualstoragedesc.getTypeOfStorage();
-                if(typeOfStorage == null)
-                    log.debug("null type-of-storage, skipping value.");
-                else {
-                    ResourceSpecCharacteristicValue tsRscv = new ResourceSpecCharacteristicValue()
-                            .value(new Any().alias("type-of-storage")
-                                    .value(typeOfStorage));
-                    rscvs.add(tsRscv);
-                }
-
-                String sizeOfStorage = vnfdVirtualstoragedesc.getSizeOfStorage();
-                if(sizeOfStorage == null)
-                    log.debug("null size-of-storage, skipping value.");
-                else {
-                    ResourceSpecCharacteristicValue ssRscv = new ResourceSpecCharacteristicValue()
-                            .value(new Any().alias("size-of-storage")
-                                    .value(sizeOfStorage))
-                            .unitOfMeasure("GB");
-                    rscvs.add(ssRscv);
-                }
-
-                rscVvsd.setResourceSpecCharacteristicValue(rscvs);
-
-                resourceSpecCharacteristics.add(rscVvsd);
-            }
-        }
-
-        List<VnfdSwimagedesc> vnfdSwimagedescs = vnfd.getSwImageDesc();
-        if(vnfdSwimagedescs == null)
-            log.debug("null sw-image-desc list, skipping characteristics.");
-        else {
-            for(VnfdSwimagedesc vnfdSwimagedesc : vnfdSwimagedescs) {
-
-                String vnfdSwimagedescId = vnfdSwimagedesc.getId();
-                if(vnfdSwimagedescId == null) {
-                    log.debug("null sw-image-desc item id, skipping characteristic.");
-                    continue;
-                }
-
-                ResourceSpecCharacteristic rscVsid = new ResourceSpecCharacteristic()
-                        .description("sw-image-desc " + vnfdSwimagedescId)
-                        .name(vnfdSwimagedescId);
-
-                List<ResourceSpecCharacteristicValue> rscvs = new ArrayList<>();
-
-                String vnfdSwimagedescVersion = vnfdSwimagedesc.getVersion();
-                if(vnfdSwimagedescVersion == null)
-                    log.debug("null version, skipping value");
-                else {
-                    ResourceSpecCharacteristicValue versionRscv = new ResourceSpecCharacteristicValue()
-                            .value(new Any().alias("version").value(vnfdSwimagedescVersion));
-                    rscvs.add(versionRscv);
-                }
-
-                VnfdChecksum vnfdChecksum = vnfdSwimagedesc.getChecksum();
-                if(vnfdChecksum == null)
-                    log.debug("null checksum, skipping value");
-                else {
-                    String value = "";
-
-                    String algorithm = vnfdChecksum.getAlgorithm();
-                    if(algorithm == null)
-                        log.debug("null checksum algorithm, not inserted in value field.");
-                    else
-                        value = "algorithm: " + algorithm;
-
-                    String hash = vnfdChecksum.getHash();
-                    if(hash == null)
-                        log.debug("null checksum hash, not inserted in value field.");
-                    else {
-                        if(!value.isEmpty())
-                            value = value + ", ";
-
-                        value = value + "hash: " + hash;
-                    }
-
-                    ResourceSpecCharacteristicValue checksumRscv = new ResourceSpecCharacteristicValue()
-                            .value(new Any().alias("checksum").value(value));
-                    rscvs.add(checksumRscv);
-                }
-
-                ContainerFormatEnum containerFormat = vnfdSwimagedesc.getContainerFormat();
-                if(containerFormat == null)
-                    log.debug("null container-format, skipping value");
-                else {
-                    ResourceSpecCharacteristicValue cfRscv = new ResourceSpecCharacteristicValue()
-                            .value(new Any().alias("container-format").value(containerFormat.toString()));
-                    rscvs.add(cfRscv);
-                }
-
-                DiskFormatEnum diskFormat = vnfdSwimagedesc.getDiskFormat();
-                if(diskFormat == null)
-                    log.debug("null disk-format, skipping value.");
-                else {
-                    ResourceSpecCharacteristicValue dfRscv = new ResourceSpecCharacteristicValue()
-                            .value(new Any().alias("disk-format").value(diskFormat.toString()));
-                    rscvs.add(dfRscv);
-                }
-
-                String minDisk = vnfdSwimagedesc.getMinDisk();
-                if(minDisk == null)
-                    log.debug("null min-disk, skipping value.");
-                else {
-                    ResourceSpecCharacteristicValue mdRscv = new ResourceSpecCharacteristicValue()
-                            .value(new Any().alias("min-disk").value(minDisk));
-                    rscvs.add(mdRscv);
-                }
-
-                Double minRam = vnfdSwimagedesc.getMinRam();
-                if(minRam == null)
-                    log.debug("null min-ram, skipping value.");
-                else {
-                    ResourceSpecCharacteristicValue mrRscv = new ResourceSpecCharacteristicValue()
-                            .value(new Any().alias("min-ram")
-                                    .value(minRam.toString()))
-                            .unitOfMeasure("GB");
-                    rscvs.add(mrRscv);
-                }
-
-                String size = vnfdSwimagedesc.getSize();
-                if(size == null)
-                    log.debug("null size, skipping value.");
-                else {
-                    ResourceSpecCharacteristicValue sRscv = new ResourceSpecCharacteristicValue()
-                            .value(new Any().alias("size").value(size));
-                    rscvs.add(sRscv);
-                }
-
-                String image = vnfdSwimagedesc.getImage();
-                if(image == null)
-                    log.debug("null image, skipping value.");
-                else {
-                    ResourceSpecCharacteristicValue iRscv = new ResourceSpecCharacteristicValue()
-                            .value(new Any().alias("image").value(image));
-                    rscvs.add(iRscv);
-                }
-
-                rscVsid.setResourceSpecCharacteristicValue(rscvs);
-
-                resourceSpecCharacteristics.add(rscVsid);
             }
         }
 
