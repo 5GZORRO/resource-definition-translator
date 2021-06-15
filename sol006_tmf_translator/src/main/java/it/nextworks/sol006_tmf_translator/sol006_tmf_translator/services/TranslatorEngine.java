@@ -161,6 +161,7 @@ public class TranslatorEngine {
                     if(vnfdVirtualstoragedescs == null)
                         log.debug("null virtual-storage-desc list, skipping value.");
                     else {
+                        int i = 0;
                         for(String virtualStorageDesc : virtualStorageDescs) {
                             List<VnfdVirtualstoragedesc> tmp =
                                     vnfdVirtualstoragedescs.stream()
@@ -192,9 +193,10 @@ public class TranslatorEngine {
                                 }
 
                                 ResourceSpecCharacteristicValue ssRscv = new ResourceSpecCharacteristicValue()
-                                        .value(new Any().alias("storage")
+                                        .value(new Any().alias("storage " + i)
                                                 .value(value));
                                 rscvs.add(ssRscv);
+                                i++;
                             }
                         }
                     }
