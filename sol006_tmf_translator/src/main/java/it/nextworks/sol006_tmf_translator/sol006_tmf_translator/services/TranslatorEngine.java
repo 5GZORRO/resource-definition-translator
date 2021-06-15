@@ -390,37 +390,10 @@ public class TranslatorEngine {
                 }
 
                 ResourceSpecCharacteristic rscEc = new ResourceSpecCharacteristic()
-                        .description("ext-cpd " + extCpdId)
-                        .name(extCpdId);
+                        .description(extCpd.getDescription())
+                        .name("External Connection Point " + extCpdId);
 
                 List<ResourceSpecCharacteristicValue> rscvs = new ArrayList<>();
-
-                IntCpdSchema intCpd = extCpd.getIntCpdSchema();
-                if(intCpd == null)
-                    log.debug("null int-cpd, skipping value.");
-                else {
-                    String value = "";
-
-                    String vduId = intCpd.getVduId();
-                    if(vduId == null)
-                        log.debug("null vdu-id, not inserted in value field.");
-                    else
-                        value = "vdu-id: " + vduId;
-
-                    String cpd = intCpd.getCpd();
-                    if(cpd == null)
-                        log.debug("null cpd, not inserted in value field.");
-                    else {
-                        if(!value.isEmpty())
-                            value = value + ", ";
-
-                        value = value + "cpd: " + cpd;
-                    }
-
-                    ResourceSpecCharacteristicValue ecRscv = new ResourceSpecCharacteristicValue()
-                            .value(new Any().alias("int-cpd").value(value));
-                    rscvs.add(ecRscv);
-                }
 
                 String intVirtualLinkDesc = extCpd.getIntVirtualLinkDesc();
                 if(intVirtualLinkDesc == null)
@@ -1233,8 +1206,8 @@ public class TranslatorEngine {
                 }
 
                 ServiceSpecCharacteristic sscVld = new ServiceSpecCharacteristic()
-                        .description("virtual-link-desc " + virtualLinkDescId)
-                        .name(virtualLinkDescId);
+                        .description(virtualLinkDesc.getDescription())
+                        .name("Virtual Link " + virtualLinkDescId);
 
                 List<ServiceSpecCharacteristicValue> sscv = new ArrayList<>();
 
