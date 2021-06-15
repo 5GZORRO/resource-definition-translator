@@ -40,6 +40,7 @@ public class TranslatorEngine {
         List<ResourceSpecCharacteristic> resourceSpecCharacteristics = new ArrayList<>();
 
         ResourceSpecCharacteristic rscVnfdId = new ResourceSpecCharacteristic()
+                .description("ID of the VNF descriptor")
                 .name("vnfdId")
                 .resourceSpecCharacteristicValue(Collections.singletonList(new ResourceSpecCharacteristicValue()
                         .value(new Any().alias("vnfdId").value(vnfdId))));
