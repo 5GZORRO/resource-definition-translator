@@ -174,28 +174,24 @@ public class TranslatorEngine {
                             else {
                                 VnfdVirtualstoragedesc vnfdVirtualstoragedesc = tmp.get(0);
 
-                                String value = "";
-
                                 String typeOfStorage = vnfdVirtualstoragedesc.getTypeOfStorage();
                                 if(typeOfStorage == null)
                                     log.debug("null type-of-storage, skipping value.");
-                                else
-                                    value = "type of storage: " + typeOfStorage;
+                                else {
+                                    ResourceSpecCharacteristicValue typeRscv = new ResourceSpecCharacteristicValue()
+                                            .value(new Any().alias("type-of-storage " + i).value(typeOfStorage));
+                                    rscvs.add(typeRscv);
+                                }
 
                                 String sizeOfStorage = vnfdVirtualstoragedesc.getSizeOfStorage();
                                 if(sizeOfStorage == null)
                                     log.debug("null size-of-storage, skipping value.");
                                 else {
-                                    if(!value.isEmpty())
-                                        value = value + ", ";
-
-                                    value = value + "size: " + sizeOfStorage + "GB";
+                                    ResourceSpecCharacteristicValue sizeRscv = new ResourceSpecCharacteristicValue()
+                                            .value(new Any().alias("size-of-storage " + i).value(sizeOfStorage ))
+                                            .unitOfMeasure("GB");
+                                    rscvs.add(sizeRscv);
                                 }
-
-                                ResourceSpecCharacteristicValue ssRscv = new ResourceSpecCharacteristicValue()
-                                        .value(new Any().alias("storage " + i)
-                                                .value(value));
-                                rscvs.add(ssRscv);
                                 i++;
                             }
                         }
