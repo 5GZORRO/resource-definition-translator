@@ -698,6 +698,7 @@ public class TranslatorEngine {
         List<ResourceSpecCharacteristic> resourceSpecCharacteristics = new ArrayList<>();
 
         ResourceSpecCharacteristic rscPnfdId = new ResourceSpecCharacteristic()
+                .description("ID of the PNF descriptor")
                 .name("pnfdId")
                 .resourceSpecCharacteristicValue(Collections.singletonList(new ResourceSpecCharacteristicValue()
                         .value(new Any().alias("pnfdId").value(pnfdId))));
@@ -1072,6 +1073,7 @@ public class TranslatorEngine {
         ssc.setServiceSpecRelationship(ssrRefs);
 
         ServiceSpecCharacteristic sscNsdId = new ServiceSpecCharacteristic()
+                .description("ID of the NS descriptor")
                 .name("nsdId")
                 .serviceSpecCharacteristicValue(Collections.singletonList(new ServiceSpecCharacteristicValue()
                         .value(new Any().alias("nsdId").value(nsdId))));
