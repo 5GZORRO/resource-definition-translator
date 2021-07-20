@@ -59,5 +59,11 @@
             <artifactId>jackson-dataformat-yaml</artifactId>
             <version>2.12.4</version>
         </dependency>
+
+        <dependency>
+            <groupId>it.nextworks.nfvmano</groupId>
+            <artifactId>NfvManoLibsSol006Descriptors</artifactId>
+            <version>0.0.1-SNAPSHOT</version>
+        </dependency>
     </dependencies>
 </project>

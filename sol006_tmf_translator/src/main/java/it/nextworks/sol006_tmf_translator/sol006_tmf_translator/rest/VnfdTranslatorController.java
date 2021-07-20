@@ -7,12 +7,12 @@ import io.swagger.annotations.ApiParam;
 import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
 import it.nextworks.nfvmano.libs.descriptors.sol006.Vnfd;
+import it.nextworks.sol006_tmf_translator.information_models.commons.CSARInfo;
 import it.nextworks.sol006_tmf_translator.information_models.commons.Pair;
 import it.nextworks.sol006_tmf_translator.interfaces.VnfdTranslatorInterface;
-import it.nextworks.sol006_tmf_translator.sol006_tmf_translator.commons.enums.Kind;
-import it.nextworks.sol006_tmf_translator.sol006_tmf_translator.commons.exception.CatalogException;
-import it.nextworks.sol006_tmf_translator.sol006_tmf_translator.commons.exception.MissingEntityOnSourceException;
-import it.nextworks.sol006_tmf_translator.sol006_tmf_translator.commons.exception.SourceException;
+import it.nextworks.sol006_tmf_translator.information_models.commons.enums.Kind;
+import it.nextworks.sol006_tmf_translator.sol006_tmf_translator.commons.exception.*;
+import it.nextworks.sol006_tmf_translator.sol006_tmf_translator.services.ArchiveParser;
 import it.nextworks.sol006_tmf_translator.sol006_tmf_translator.services.TranslationService;
 import it.nextworks.sol006_tmf_translator.sol006_tmf_translator.services.TranslatorDescSourceInteractionService;
 import it.nextworks.tmf_offering_catalog.information_models.resource.ResourceCandidate;
@@ -23,13 +23,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import javax.servlet.http.HttpServletRequest;
-import javax.validation.Valid;
 import java.io.IOException;
-import java.util.UUID;
 
 @RestController
 public class VnfdTranslatorController implements VnfdTranslatorInterface {
@@ -44,15 +44,19 @@ public class VnfdTranslatorController implements VnfdTranslatorInterface {
 
     private final TranslatorDescSourceInteractionService translatorDescSourceInteractionService;
 
+    private final ArchiveParser archiveParser;
+
     @Autowired
     public VnfdTranslatorController(ObjectMapper objectMapper,
                                     HttpServletRequest request,
                                     TranslationService translationService,
-                                    TranslatorDescSourceInteractionService translatorDescSourceInteractionService) {
+                                    TranslatorDescSourceInteractionService translatorDescSourceInteractionService,
+                                    ArchiveParser archiveParser) {
         this.objectMapper       = objectMapper;
         this.request            = request;
         this.translationService = translationService;
         this.translatorDescSourceInteractionService = translatorDescSourceInteractionService;
+        this.archiveParser = archiveParser;
     }
 
     @Override
@@ -63,26 +67,29 @@ public class VnfdTranslatorController implements VnfdTranslatorInterface {
     })
     @RequestMapping(value = "/vnfdToTmf",
             produces = { "application/json;charset=utf-8" },
-            consumes = { "application/json;charset=utf-8" },
+            consumes = MediaType.MULTIPART_FORM_DATA_VALUE,
             method = RequestMethod.POST)
     @ResponseStatus(value = HttpStatus.CREATED)
     public ResponseEntity<?>
-    translateVnfd(@ApiParam(value = "The VNFD to be translated.", required = true) @Valid @RequestBody Vnfd vnfd) {
+    translateVnfd(@ApiParam(value = "VNF package", required = true) @RequestPart("file") MultipartFile body) {
 
-        if(vnfd == null) {
-            log.info("Received a translation request with null vnfd.");
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(new ErrMsg("received a translation request with null vnfd."));
+        CSARInfo csarInfo;
+        try {
+            csarInfo = archiveParser.archiveToCSARInfo(body, Kind.VNF);
+        } catch (IOException | FailedOperationException e) {
+            String msg = e.getMessage();
+            log.error(msg);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new ErrMsg(e.getMessage()));
+        } catch (MalformattedElementException e) {
+            String msg = e.getMessage();
+            log.error(msg);
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ErrMsg(msg));
         }
 
+        Vnfd vnfd = csarInfo.getVnfd();
         String vnfdId = vnfd.getId();
-        if(vnfdId == null) {
-            vnfdId = UUID.randomUUID().toString();
-            vnfd.setId(vnfdId);
-            log.info("Received request to translate & post vnfd without id, generated: " + vnfdId + ".");
-        }
-        else
-            log.info("Received request to translate & post vnfd with id " + vnfdId + ".");
+
+        log.info("Received request to translate & post vnfd with id " + vnfdId + ".");
 
         Pair<ResourceCandidate, ResourceSpecification> translation;
         try {
@@ -96,17 +103,21 @@ public class VnfdTranslatorController implements VnfdTranslatorInterface {
         }
 
         try {
-            translatorDescSourceInteractionService.getFromSource(Kind.VNF, vnfdId);
+            translatorDescSourceInteractionService.getInfoIdFromDescriptorId(Kind.VNF, vnfdId);
         } catch (SourceException e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new ErrMsg(e.getMessage()));
         } catch (MissingEntityOnSourceException e) {
             log.info("Posting vnfd " + vnfdId + " to descriptors source.");
             try {
-                translatorDescSourceInteractionService.postOnSource(Kind.VNF, objectMapper.writeValueAsString(vnfd));
+                translatorDescSourceInteractionService.postOnSource(Kind.VNF, csarInfo.getPackagePath());
                 log.info("vnfd " + vnfdId + " posted on descriptors source.");
             } catch (SourceException | IOException ee) {
                 return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new ErrMsg(ee.getMessage()));
             }
+        } catch (IOException e) {
+            String msg = e.getMessage();
+            log.error(msg);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new ErrMsg(msg));
         }
 
         return ResponseEntity.status(HttpStatus.CREATED).body(translation);

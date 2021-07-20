@@ -3,7 +3,7 @@ package it.nextworks.sol006_tmf_translator.sol006_tmf_translator.services;
 import it.nextworks.nfvmano.libs.common.enums.*;
 import it.nextworks.nfvmano.libs.descriptors.sol006.*;
 import it.nextworks.sol006_tmf_translator.information_models.commons.Pair;
-import it.nextworks.sol006_tmf_translator.sol006_tmf_translator.commons.enums.Kind;
+import it.nextworks.sol006_tmf_translator.information_models.commons.enums.Kind;
 import it.nextworks.tmf_offering_catalog.information_models.common.*;
 import it.nextworks.tmf_offering_catalog.information_models.resource.*;
 import it.nextworks.tmf_offering_catalog.information_models.service.*;

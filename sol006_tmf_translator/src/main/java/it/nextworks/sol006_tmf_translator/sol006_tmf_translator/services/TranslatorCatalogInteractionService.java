@@ -4,7 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import it.nextworks.sol006_tmf_translator.information_models.commons.Pair;
 import it.nextworks.sol006_tmf_translator.sol006_tmf_translator.commons.config.CustomOffsetDateTimeSerializer;
-import it.nextworks.sol006_tmf_translator.sol006_tmf_translator.commons.enums.Kind;
+import it.nextworks.sol006_tmf_translator.information_models.commons.enums.Kind;
 import it.nextworks.sol006_tmf_translator.sol006_tmf_translator.commons.exception.CatalogException;
 import it.nextworks.sol006_tmf_translator.sol006_tmf_translator.commons.exception.MissingEntityOnCatalogException;
 import it.nextworks.sol006_tmf_translator.sol006_tmf_translator.commons.exception.ResourceMismatchException;

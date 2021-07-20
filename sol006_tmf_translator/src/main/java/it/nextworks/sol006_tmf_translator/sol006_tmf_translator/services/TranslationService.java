@@ -10,7 +10,7 @@ import it.nextworks.nfvmano.libs.descriptors.sol006.Vnfd;
 import it.nextworks.sol006_tmf_translator.information_models.commons.Pair;
 import it.nextworks.sol006_tmf_translator.information_models.persistence.MappingInfo;
 import it.nextworks.sol006_tmf_translator.sol006_tmf_translator.commons.config.CustomOffsetDateTimeSerializer;
-import it.nextworks.sol006_tmf_translator.sol006_tmf_translator.commons.enums.Kind;
+import it.nextworks.sol006_tmf_translator.information_models.commons.enums.Kind;
 import it.nextworks.sol006_tmf_translator.sol006_tmf_translator.commons.exception.*;
 import it.nextworks.tmf_offering_catalog.information_models.common.ResourceSpecificationRef;
 import it.nextworks.tmf_offering_catalog.information_models.common.ServiceSpecificationRef;
