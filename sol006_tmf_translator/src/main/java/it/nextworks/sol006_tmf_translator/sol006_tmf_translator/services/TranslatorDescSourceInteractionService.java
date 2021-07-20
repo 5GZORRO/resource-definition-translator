@@ -1,5 +1,6 @@
 package it.nextworks.sol006_tmf_translator.sol006_tmf_translator.services;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import it.nextworks.sol006_tmf_translator.sol006_tmf_translator.commons.enums.Kind;
 import it.nextworks.sol006_tmf_translator.sol006_tmf_translator.commons.exception.MissingEntityOnSourceException;
@@ -8,9 +9,11 @@ import org.apache.http.HttpEntity;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
+import org.apache.http.client.methods.HttpPut;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
+import org.apache.http.util.EntityUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,7 +21,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 
 @Service
 public class TranslatorDescSourceInteractionService {
@@ -33,15 +35,6 @@ public class TranslatorDescSourceInteractionService {
     @Value("${descriptors_source.port}")
     private String sourcePort;
 
-    @Value("${descriptors_source.vnfdPath}")
-    private String sourceVnfdPath;
-
-    @Value("${descriptors_source.pnfdPath}")
-    private String sourcePnfdPath;
-
-    @Value("${descriptors_source.nsdPath}")
-    private String sourceNsPath;
-
     private final ObjectMapper objectMapper;
 
     @Autowired
@@ -49,16 +42,26 @@ public class TranslatorDescSourceInteractionService {
         this.objectMapper = objectMapper;
     }
 
-    private String getRequestPath(Kind kind) {
+    private String getRequestPath(Kind kind, String id) {
+        String url;
         switch(kind) {
             case VNF:
-                return sourceVnfdPath;
+                url = "/vnfpkgm/v1/vnf_packages";
+                if(id != null)
+                    url = url + "/" + id + "/vnfd";
+                return url;
 
             case PNF:
-                return sourcePnfdPath;
+                url = "/nsd/v1/pnf_descriptors";
+                if(id != null)
+                    url = url + "/" + id + "/pnfd_content";
+                return url;
 
             case NS:
-                return sourceNsPath;
+                url = "/nsd/v1/ns_descriptors";
+                if(id != null)
+                    url = url + "/" + id + "/nsd_content";
+                return url;
 
             default:
                 return null;
@@ -68,7 +71,7 @@ public class TranslatorDescSourceInteractionService {
     public HttpEntity getFromSource(Kind kind, String id)
             throws SourceException, MissingEntityOnSourceException {
 
-        String request = protocol + sourceHostname + ":" + sourcePort + getRequestPath(kind) + "/" + id;
+        String request = protocol + sourceHostname + ":" + sourcePort + getRequestPath(kind, id);
         CloseableHttpClient httpClient = HttpClients.createDefault();
 
         HttpGet httpGet = new HttpGet(request);
@@ -96,15 +99,57 @@ public class TranslatorDescSourceInteractionService {
         return response.getEntity();
     }
 
-    public void postOnSource(Kind kind, String body) throws UnsupportedEncodingException, SourceException {
+    public String getInfoIdFromDescriptorId(Kind kind, String descriptorId)
+            throws SourceException, MissingEntityOnSourceException, IOException {
 
-        String request = protocol + sourceHostname + ":" + sourcePort + getRequestPath(kind);
+        String request = protocol + sourceHostname + ":" + sourcePort + getRequestPath(kind, null);
+        switch(kind) {
+            case VNF:
+                request = request + "?vnfdId=" + descriptorId;
+                break;
+            case PNF:
+                request = request + "?pnfdId=" + descriptorId;
+                break;
+            case NS:
+                request = request + "?nsdId=" + descriptorId;
+                break;
+        }
+
+        CloseableHttpClient httpClient = HttpClients.createDefault();
+
+        HttpGet httpGet = new HttpGet(request);
+        httpGet.setHeader("Accept", "application/json");
+        httpGet.setHeader("Content-type", "application/json");
+
+        CloseableHttpResponse response;
+        try {
+            response = httpClient.execute(httpGet);
+        } catch(IOException e) {
+            String msg = "Descriptors Source Unreachable.";
+            log.error(msg);
+            throw new SourceException(msg);
+        }
+
+        int statusCode = response.getStatusLine().getStatusCode();
+        if(statusCode == 404)
+            throw new MissingEntityOnSourceException();
+        else if(statusCode != 200) {
+            String msg = "Descriptors Source GET request failed, status code: " + statusCode + ".";
+            log.error(msg);
+            throw new SourceException(msg);
+        }
+
+        JsonNode info = objectMapper.readTree(EntityUtils.toString(response.getEntity()));
+        return info.get(0).get("id").asText();
+    }
+
+    public void postOnSource(Kind kind, String body) throws IOException, SourceException {
+
+        String request = protocol + sourceHostname + ":" + sourcePort + getRequestPath(kind, null);
         CloseableHttpClient httpClient = HttpClients.createDefault();
         HttpPost httpPost = new HttpPost(request);
 
-        StringEntity stringEntity = new StringEntity(body);
-
-        httpPost.setEntity(stringEntity);
+        httpPost.setEntity(new StringEntity("{}"));
         httpPost.setHeader("Accept", "application/json");
         httpPost.setHeader("Content-type", "application/json");
 
@@ -123,5 +168,28 @@ public class TranslatorDescSourceInteractionService {
             log.error(msg);
             throw new SourceException(msg);
         }
+
+        ObjectMapper objectMapper = new ObjectMapper();
+        JsonNode packageInfo = objectMapper.readTree(EntityUtils.toString(response.getEntity()));
+
+        request = request + packageInfo.get("id").asText();
+        switch(kind) {
+            case VNF:
+                request = request + "package_content";
+                break;
+            case PNF:
+                request = request + "/pnfd_content";
+                break;
+            case NS:
+                request = request + "/nsd_content";
+                break;
+        }
+
+        HttpPut httpPut = new HttpPut(request);
+
+        StringEntity stringEntity = new StringEntity(body);
+        httpPost.setEntity(stringEntity);
+
+
     }
 }

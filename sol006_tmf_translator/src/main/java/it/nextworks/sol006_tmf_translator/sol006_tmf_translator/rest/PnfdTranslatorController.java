@@ -2,6 +2,7 @@ package it.nextworks.sol006_tmf_translator.sol006_tmf_translator.rest;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import io.swagger.annotations.ApiParam;
 import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
@@ -28,7 +29,6 @@ import org.springframework.web.bind.annotation.*;
 import javax.servlet.http.HttpServletRequest;
 import javax.validation.Valid;
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.util.UUID;
 
 @RestController
@@ -104,7 +104,7 @@ public class PnfdTranslatorController implements PnfdTranslatorInterface {
             try {
                 translatorDescSourceInteractionService.postOnSource(Kind.PNF, objectMapper.writeValueAsString(pnfd));
                 log.info("pnfd " + pnfdId + " posted on descriptors source.");
-            } catch (UnsupportedEncodingException | SourceException | JsonProcessingException ee) {
+            } catch (SourceException | IOException ee) {
                 return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new ErrMsg(ee.getMessage()));
             }
         }
@@ -139,10 +139,33 @@ public class PnfdTranslatorController implements PnfdTranslatorInterface {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ErrMsg(msg));
         }
 
+        String pnfdStringFromEntity;
+        try {
+            pnfdStringFromEntity = EntityUtils.toString(httpEntity);
+        } catch (IOException e) {
+            String msg = e.getMessage();
+            log.error("Error parsing http entity: \n" + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new ErrMsg(msg));
+        }
+
+        ObjectMapper objectMapper = new ObjectMapper();
+        Pnfd pnfd;
+        try {
+            pnfd = objectMapper.readValue(pnfdStringFromEntity, Pnfd.class);
+        } catch (JsonProcessingException e) {
+            objectMapper = new ObjectMapper(new YAMLFactory());
+            try {
+                pnfd = objectMapper.readValue(pnfdStringFromEntity, Pnfd.class);
+            } catch (JsonProcessingException jsonProcessingException) {
+                String msg = e.getMessage();
+                log.error("Error parsing descriptor: \n" + msg);
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ErrMsg(msg));
+            }
+        }
+
         Pair<ResourceCandidate, ResourceSpecification> translation;
         try {
-            translation = translationService.translatePnfd(objectMapper.readValue(EntityUtils.toString(httpEntity),
-                    Pnfd.class));
+            translation = translationService.translatePnfd(pnfd);
         } catch (IOException | CatalogException e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new ErrMsg(e.getMessage()));
         }

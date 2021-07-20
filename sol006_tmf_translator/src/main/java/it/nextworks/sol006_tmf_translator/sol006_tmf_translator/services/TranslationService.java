@@ -1,7 +1,9 @@
 package it.nextworks.sol006_tmf_translator.sol006_tmf_translator.services;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.module.SimpleModule;
+import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import it.nextworks.nfvmano.libs.descriptors.sol006.Nsd;
 import it.nextworks.nfvmano.libs.descriptors.sol006.Pnfd;
 import it.nextworks.nfvmano.libs.descriptors.sol006.Vnfd;
@@ -283,15 +285,31 @@ public class TranslationService {
     private ResourceSpecificationRef getFromSourceAndTranslateResource(Kind kind, String resource)
             throws MissingEntityOnSourceException, SourceException, IOException, CatalogException {
 
-        HttpEntity httpEntity = translatorDescSourceInteractionService.getFromSource(kind, resource);
+        String infoId = translatorDescSourceInteractionService.getInfoIdFromDescriptorId(kind, resource);
+        HttpEntity httpEntity = translatorDescSourceInteractionService.getFromSource(kind, infoId);
 
+        ObjectMapper objectMapper = new ObjectMapper();
         switch(kind) {
             case VNF:
-                Vnfd vnfd = objectMapper.readValue(EntityUtils.toString(httpEntity), Vnfd.class);
+                String vnfdStringFromEntity = EntityUtils.toString(httpEntity);
+                Vnfd vnfd;
+                try {
+                    vnfd = objectMapper.readValue(vnfdStringFromEntity, Vnfd.class);
+                } catch (JsonProcessingException e) {
+                    objectMapper = new ObjectMapper(new YAMLFactory());
+                    vnfd = objectMapper.readValue(vnfdStringFromEntity, Vnfd.class);
+                }
                 return translateVnfd(vnfd).getFirst().getResourceSpecification();
 
             case PNF:
-                Pnfd pnfd = objectMapper.readValue(EntityUtils.toString(httpEntity), Pnfd.class);
+                String pnfdStringFromEntity = EntityUtils.toString(httpEntity);
+                Pnfd pnfd;
+                try {
+                    pnfd = objectMapper.readValue(EntityUtils.toString(httpEntity), Pnfd.class);
+                } catch (JsonProcessingException e) {
+                    objectMapper = new ObjectMapper(new YAMLFactory());
+                    pnfd = objectMapper.readValue(pnfdStringFromEntity, Pnfd.class);
+                }
                 return translatePnfd(pnfd).getFirst().getResourceSpecification();
 
             default:
@@ -303,8 +321,18 @@ public class TranslationService {
             throws MissingEntityOnSourceException, SourceException, IOException,
             CatalogException, MissingEntityOnCatalogException {
 
-        HttpEntity httpEntity = translatorDescSourceInteractionService.getFromSource(Kind.NS, service);
-        Nsd nsd = objectMapper.readValue(EntityUtils.toString(httpEntity), Nsd.class);
+        String infoId = translatorDescSourceInteractionService.getInfoIdFromDescriptorId(Kind.NS, service);
+        HttpEntity httpEntity = translatorDescSourceInteractionService.getFromSource(Kind.NS, infoId);
+
+        ObjectMapper objectMapper = new ObjectMapper();
+        String nsdStringFromEntity = EntityUtils.toString(httpEntity);
+        Nsd nsd;
+        try {
+            nsd = objectMapper.readValue(nsdStringFromEntity, Nsd.class);
+        } catch (JsonProcessingException e) {
+            objectMapper = new ObjectMapper(new YAMLFactory());
+            nsd = objectMapper.readValue(nsdStringFromEntity, Nsd.class);
+        }
         return translateNsd(nsd).getFirst().getServiceSpecification();
     }
 

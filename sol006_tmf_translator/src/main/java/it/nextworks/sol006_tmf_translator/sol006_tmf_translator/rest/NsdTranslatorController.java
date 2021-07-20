@@ -2,6 +2,7 @@ package it.nextworks.sol006_tmf_translator.sol006_tmf_translator.rest;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import io.swagger.annotations.ApiParam;
 import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
@@ -29,7 +30,6 @@ import org.springframework.web.bind.annotation.*;
 import javax.servlet.http.HttpServletRequest;
 import javax.validation.Valid;
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.util.UUID;
 
 @RestController
@@ -47,9 +47,9 @@ public class NsdTranslatorController implements NsdTranslatorInterface {
 
     @Autowired
     public NsdTranslatorController(ObjectMapper objectMapper,
-                                    HttpServletRequest request,
-                                    TranslationService translationService,
-                                    TranslatorDescSourceInteractionService translatorDescSourceInteractionService) {
+                                   HttpServletRequest request,
+                                   TranslationService translationService,
+                                   TranslatorDescSourceInteractionService translatorDescSourceInteractionService) {
         this.objectMapper       = objectMapper;
         this.request            = request;
         this.translationService = translationService;
@@ -107,7 +107,7 @@ public class NsdTranslatorController implements NsdTranslatorInterface {
             try {
                 translatorDescSourceInteractionService.postOnSource(Kind.NS, objectMapper.writeValueAsString(nsd));
                 log.info("nsd " + nsdId + " posted on descriptors source.");
-            } catch (UnsupportedEncodingException | SourceException | JsonProcessingException ee) {
+            } catch (SourceException | IOException ee) {
                 return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new ErrMsg(ee.getMessage()));
             }
         }
@@ -142,10 +142,33 @@ public class NsdTranslatorController implements NsdTranslatorInterface {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ErrMsg(msg));
         }
 
+        String nsdStringFromEntity;
+        try {
+            nsdStringFromEntity = EntityUtils.toString(httpEntity);
+        } catch (IOException e) {
+            String msg = e.getMessage();
+            log.error("Error parsing http entity: \n" + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new ErrMsg(msg));
+        }
+
+        ObjectMapper objectMapper = new ObjectMapper();
+        Nsd nsd;
+        try {
+            nsd = objectMapper.readValue(nsdStringFromEntity, Nsd.class);
+        } catch (JsonProcessingException e) {
+            objectMapper = new ObjectMapper(new YAMLFactory());
+            try {
+                nsd = objectMapper.readValue(nsdStringFromEntity, Nsd.class);
+            } catch (JsonProcessingException jsonProcessingException) {
+                String msg = e.getMessage();
+                log.error("Error parsing descriptor: \n" + msg);
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ErrMsg(msg));
+            }
+        }
+
         Pair<ServiceCandidate, ServiceSpecification> translation;
         try {
-            translation = translationService.translateNsd(objectMapper.readValue(EntityUtils.toString(httpEntity),
-                    Nsd.class));
+            translation = translationService.translateNsd(nsd);
         } catch (IOException | CatalogException | SourceException e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new ErrMsg(e.getMessage()));
         } catch (MissingEntityOnSourceException | MissingEntityOnCatalogException e) {
