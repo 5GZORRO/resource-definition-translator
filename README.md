@@ -43,8 +43,6 @@ java -jar sol006_tmf_translator/target/sol006_tmf_translator-1.0-SNAPSHOT.jar
 
 ## Installation [docker-compose]
 Customize your Resource Definition Translator properties in ```resource-definition-translator/deployment/.env```. </br>
-In ```resource-definition-translator/``` add a file containing a private key that can be used to clone repositories
-from the 5GZORRO GitHub (N.B the file must be called ```id_rsa```). </br>
 From ```resource-definition-translator/``` run the following command.
 ```bash
 docker-compose -f deployment/docker-compose.yaml up -d
@@ -53,19 +51,17 @@ docker-compose -f deployment/docker-compose.yaml up -d
 ## Installation [Dockerfile]
 Customize your Resource Definition Translator properties in 
 ```resource-definition-translator/deployment/translator_dockerfile/env_file```. </br>
-In ```resource-definition-translator/``` add a file containing a private key that can be used to clone repositories
-from the 5GZORRO GitHub (N.B the file must be called ```id_rsa```). </br>
 From ```resource-definition-translator/``` run the following command.
 ```bash
 docker build -t translator -f deployment/translator_dockerfile/Dockerfile . \
 --build-arg NFV_SOL006_LIBS_REPO=https://github.com/nextworks-it/nfv-sol-libs.git \
 --build-arg NFV_SOL006_LIBS_VERSION=master \
---build-arg TMF_INFO_MODELS_REPO=git@github.com:5GZORRO/resource-and-service-offer-catalog.git \
+--build-arg TMF_INFO_MODELS_REPO=https://github.com/5GZORRO/resource-and-service-offer-catalog.git \
 --build-arg TMF_INFO_MODELS_VERSION=main
 ```
 Run the application from ```resource-definition-translator/deployment/translator_dockerfile/```.
 ```bash
-docker run --env-file=env-file translator:latest
+docker run --env-file=env_file translator:latest
 ```
 
 ## Usage
