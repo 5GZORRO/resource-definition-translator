@@ -129,23 +129,23 @@ public class PnfdTranslatorController implements PnfdTranslatorInterface {
             @ApiResponse(code = 400, message = "Bad Request", response = ErrMsg.class),
             @ApiResponse(code = 500, message = "Internal Server Error", response = ErrMsg.class)
     })
-    @RequestMapping(value = "/pnfdToTmf/{pnfdId}",
+    @RequestMapping(value = "/pnfdToTmf/{pnfPkgInfoId}",
             produces = { "application/json;charset=utf-8" },
             method = RequestMethod.POST)
     @ResponseStatus(value = HttpStatus.CREATED)
     public ResponseEntity<?>
-    translatePnfdById(@ApiParam(value = "The PNFD to be translated.", required = true) @PathVariable("pnfdId") String pnfdId) {
+    translatePnfdById(@ApiParam(value = "pnf package info ID of the pnf to be translated.", required = true) @PathVariable("pnfPkgInfoId") String pnfPkgInfoId) {
 
-        log.info("Received request to translate & post pnfd with id " + pnfdId + ".");
+        log.info("Received request to translate & post pnfd for pnf with pnf package info id " + pnfPkgInfoId + ".");
 
         HttpEntity httpEntity;
         try {
-            log.info("Retrieving pnfd " + pnfdId + " from descriptors source.");
-            httpEntity = translatorDescSourceInteractionService.getFromSource(Kind.PNF, pnfdId);
+            log.info("Retrieving pnfd for pnf with pnf package info id " + pnfPkgInfoId + " from descriptors source.");
+            httpEntity = translatorDescSourceInteractionService.getFromSource(Kind.PNF, pnfPkgInfoId);
         } catch (SourceException e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new ErrMsg(e.getMessage()));
         } catch (MissingEntityOnSourceException e) {
-            String msg = "pnfd with id " + pnfdId + " not found in descriptor source.";
+            String msg = "pnf with pnf package info id " + pnfPkgInfoId + " not found in descriptor source.";
             log.info(msg);
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ErrMsg(msg));
         }
