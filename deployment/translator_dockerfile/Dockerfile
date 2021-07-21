@@ -17,20 +17,6 @@ RUN mvn clean install
 WORKDIR /home/nfv-sol-libs/NFV_MANO_SOL006_LIBS_DESCRIPTORS
 RUN mvn clean install
 
-# Make ssh dir
-RUN mkdir /root/.ssh/
-
-# Copy over private key, and set permissions
-ADD id_rsa /root/.ssh/id_rsa
-RUN chmod 700 /root/.ssh/id_rsa
-RUN chown -R root:root /root/.ssh
-
-# Create known_hosts
-RUN touch /root/.ssh/known_hosts
-
-# Remove host checking
-RUN echo "Host github.com\n\tStrictHostKeyChecking no\n" >> /root/.ssh/config
-
 WORKDIR /home
 RUN git clone ${TMF_INFO_MODELS_REPO} tmf-models
 WORKDIR /home/tmf-models
