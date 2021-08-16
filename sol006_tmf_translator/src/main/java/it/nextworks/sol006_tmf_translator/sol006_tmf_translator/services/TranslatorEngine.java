@@ -678,7 +678,8 @@ public class TranslatorEngine {
                         .id(pair.getSecond())))
                 .resourceSpecification(new ResourceSpecificationRef()
                         .id(rs.getId())
-                        .href(rs.getHref()));
+                        .href(rs.getHref())
+                        .name(rs.getName()));
     }
 
     public ResourceSpecificationCreate buildPnfdResourceSpecification(Pnfd pnfd) {
@@ -1024,7 +1025,8 @@ public class TranslatorEngine {
                         .id(pair.getSecond())))
                 .resourceSpecification(new ResourceSpecificationRef()
                         .id(rs.getId())
-                        .href(rs.getHref()));
+                        .href(rs.getHref())
+                        .name(rs.getName()));
     }
 
     public ServiceSpecificationCreate buildNsdServiceSpecification(Nsd nsd,
@@ -1050,13 +1052,15 @@ public class TranslatorEngine {
         for(ResourceSpecificationRef vnfdRef : vnfdRefs) {
             rsRefs.add(new ResourceSpecificationRef()
                     .id(vnfdRef.getId())
-                    .href(vnfdRef.getHref()));
+                    .href(vnfdRef.getHref())
+                    .name(vnfdRef.getName()));
         }
 
         for(ResourceSpecificationRef pnfdRef : pnfdRefs) {
             rsRefs.add(new ResourceSpecificationRef()
                     .id(pnfdRef.getId())
-                    .href(pnfdRef.getHref()));
+                    .href(pnfdRef.getHref())
+                    .name(pnfdRef.getName()));
         }
 
         ssc.setResourceSpecification(rsRefs);
@@ -1066,7 +1070,8 @@ public class TranslatorEngine {
         for(ServiceSpecificationRef nsdRef : nsdRefs) {
             ssrRefs.add(new ServiceSpecRelationship()
                     .id(nsdRef.getId())
-                    .href(nsdRef.getHref()));
+                    .href(nsdRef.getHref())
+                    .name(nsdRef.getName()));
         }
 
         ssc.setServiceSpecRelationship(ssrRefs);
@@ -1854,6 +1859,7 @@ public class TranslatorEngine {
                         .id(pair.getSecond())))
                 .serviceSpecification(new ServiceSpecificationRef()
                         .id(ss.getId())
-                        .href(ss.getHref()));
+                        .href(ss.getHref())
+                        .name(ss.getName()));
     }
 }
