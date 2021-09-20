@@ -635,4 +635,70 @@ public class TranslationService {
         } else
             return translateAndPostSpc(rsc, spcId);
     }
+
+    public Pair<ResourceCandidate, ResourceSpecification> translateAndPostRad(ResourceSpecificationCreate rsc, String radId)
+            throws IOException, CatalogException {
+
+        log.info("Posting Resource Specification to Offer Catalog for radio resource " + radId + ".");
+
+        String rscJson = objectMapper.writeValueAsString(rsc);
+        HttpEntity httpEntity = translatorCatalogInteractionService
+                .post(rscJson, "/resourceCatalogManagement/v2/resourceSpecification");
+        ResourceSpecification rs =
+                objectMapper.readValue(EntityUtils.toString(httpEntity), ResourceSpecification.class);
+
+        Pair<String, String> pair = getCategoryOrCreateIfNotExists(Kind.RAD,
+                "/resourceCatalogManagement/v2/resourceCategory/filter");
+
+        ResourceCandidateCreate rcc = translatorEngine.buildRadResourceCandidate(pair, rs);
+
+        log.info("Posting Resource Candidate to Offer Catalog for radio resource " + radId + ".");
+
+        String rccJson = objectMapper.writeValueAsString(rcc);
+        httpEntity =
+                translatorCatalogInteractionService.post(rccJson, "/resourceCatalogManagement/v2/resourceCandidate");
+        ResourceCandidate rc = objectMapper.readValue(EntityUtils.toString(httpEntity), ResourceCandidate.class);
+
+        mappingInfoService.save(new MappingInfo(radId, rc.getId(), rs.getId()));
+
+        log.info("Spectrum Resource " + radId + " translated & posted.");
+
+        return new Pair<>(rc, rs);
+    }
+
+    public Pair<ResourceCandidate, ResourceSpecification> translateRad(ResourceSpecificationCreate rsc, String radId)
+            throws IOException, CatalogException {
+
+        boolean found = true;
+        MappingInfo mappingInfo = null;
+        try {
+            mappingInfo = mappingInfoService.get(radId);
+        } catch (NotExistingEntityException e) {
+            found = false;
+        }
+
+        if(found) {
+            Pair<ResourceCandidate, ResourceSpecification> pair = null;
+            try {
+                pair = translatorCatalogInteractionService
+                        .isResourcePresent(mappingInfo.getCandidateCatalogId(), mappingInfo.getSpecificationCatalogId());
+            } catch (MissingEntityOnCatalogException | ResourceMismatchException e) {
+                found = false;
+            }
+
+            if(found) {
+                log.info("Radio Resource " + radId + " already translated and correctly posted on Offer Catalog.");
+                return pair;
+            } else {
+                try {
+                    mappingInfoService.delete(radId);
+                } catch (NotExistingEntityException e) {
+                    log.info("Entry for " + radId + " that should exists in DB, not found.");
+                }
+
+                return translateAndPostRad(rsc, radId);
+            }
+        } else
+            return translateAndPostRad(rsc, radId);
+    }
 }

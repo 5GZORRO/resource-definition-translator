@@ -1879,4 +1879,21 @@ public class TranslatorEngine {
                         .href(rs.getHref())
                         .name(name));
     }
+
+    public ResourceCandidateCreate buildRadResourceCandidate(Pair<String, String> pair, ResourceSpecification rs) {
+
+        String name = rs.getName();
+
+        return new ResourceCandidateCreate()
+                .name(name)
+                .lastUpdate(OffsetDateTime.ofInstant(Instant.now(), ZoneId.of("UTC")))
+                .category(Collections.singletonList(new ResourceCategoryRef()
+                        .name(Kind.RAD.name())
+                        .href(pair.getFirst())
+                        .id(pair.getSecond())))
+                .resourceSpecification(new ResourceSpecificationRef()
+                        .id(rs.getId())
+                        .href(rs.getHref())
+                        .name(name));
+    }
 }

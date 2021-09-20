@@ -6,7 +6,7 @@ import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
 import it.nextworks.sol006_tmf_translator.information_models.commons.Pair;
 import it.nextworks.sol006_tmf_translator.information_models.commons.enums.Kind;
-import it.nextworks.sol006_tmf_translator.interfaces.SpectrumTranslatorInterface;
+import it.nextworks.sol006_tmf_translator.interfaces.RadioTranslatorInterface;
 import it.nextworks.sol006_tmf_translator.sol006_tmf_translator.commons.exception.CatalogException;
 import it.nextworks.sol006_tmf_translator.sol006_tmf_translator.commons.exception.MissingEntityOnSourceException;
 import it.nextworks.sol006_tmf_translator.sol006_tmf_translator.commons.exception.SourceException;
@@ -26,9 +26,9 @@ import javax.servlet.http.HttpServletRequest;
 import java.io.IOException;
 
 @RestController
-public class SpectrumTranslatorController implements SpectrumTranslatorInterface {
+public class RadioTranslatorController implements RadioTranslatorInterface {
 
-    private final static Logger log = LoggerFactory.getLogger(SpectrumTranslatorController.class);
+    private final static Logger log = LoggerFactory.getLogger(RadioTranslatorController.class);
 
     private final ObjectMapper objectMapper;
 
@@ -39,16 +39,15 @@ public class SpectrumTranslatorController implements SpectrumTranslatorInterface
     private final TranslatorRAPPInteractionService translatorRAPPInteractionService;
 
     @Autowired
-    public SpectrumTranslatorController(ObjectMapper objectMapper,
-                                        HttpServletRequest request,
-                                        TranslationService translationService,
-                                        TranslatorRAPPInteractionService translatorRAPPInteractionService) {
+    public RadioTranslatorController(ObjectMapper objectMapper,
+                                     HttpServletRequest request,
+                                     TranslationService translationService,
+                                     TranslatorRAPPInteractionService translatorRAPPInteractionService) {
         this.objectMapper                     = objectMapper;
         this.request                          = request;
         this.translationService               = translationService;
         this.translatorRAPPInteractionService = translatorRAPPInteractionService;
     }
-
 
     @Override
     @ApiResponses(value = {
@@ -56,28 +55,28 @@ public class SpectrumTranslatorController implements SpectrumTranslatorInterface
             @ApiResponse(code = 400, message = "Bad Request", response = ErrMsg.class),
             @ApiResponse(code = 500, message = "Internal Server Error", response = ErrMsg.class)
     })
-    @RequestMapping(value = "/spc/{spcId}",
+    @RequestMapping(value = "/rad/{radId}",
             produces = { "application/json;charset=utf-8" },
             method = RequestMethod.POST)
     @ResponseStatus(value = HttpStatus.CREATED)
-    public ResponseEntity<?> translateSpectrum(@ApiParam(value = "Spectrum ID of the Spectrum Resource to be translated.", required = true) @PathVariable("spcId") String spcId) {
+    public ResponseEntity<?> translateRadio(@ApiParam(value = "Radio ID of the Radio Resource to be translated.", required = true) @PathVariable("radId") String radId) {
 
-        log.info("Received request to translate & post Spectrum Resource with Spectrum id " + spcId + ".");
+        log.info("Received request to translate & post Radio Resource with Radio id " + radId + ".");
 
         ResourceSpecificationCreate rsc;
         try {
-            rsc = translatorRAPPInteractionService.getFromRAPP(Kind.SPC, spcId);
+            rsc = translatorRAPPInteractionService.getFromRAPP(Kind.RAD, radId);
         } catch (SourceException | IOException e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new ErrMsg(e.getMessage()));
         } catch (MissingEntityOnSourceException e) {
-            String msg = "spc with id " + spcId + " not found in RAPP.";
+            String msg = "rad with id " + radId + " not found in RAPP.";
             log.info(msg);
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ErrMsg(msg));
         }
 
         Pair<ResourceCandidate, ResourceSpecification> translation;
         try {
-            translation = translationService.translateSpc(rsc, spcId);
+            translation = translationService.translateRad(rsc, radId);
         } catch (IOException | CatalogException e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new ErrMsg(e.getMessage()));
         }
