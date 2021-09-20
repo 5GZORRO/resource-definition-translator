@@ -55,7 +55,7 @@ public class RadioTranslatorController implements RadioTranslatorInterface {
             @ApiResponse(code = 400, message = "Bad Request", response = ErrMsg.class),
             @ApiResponse(code = 500, message = "Internal Server Error", response = ErrMsg.class)
     })
-    @RequestMapping(value = "/rad/{radId}",
+    @RequestMapping(value = "/radToTmf/{radId}",
             produces = { "application/json;charset=utf-8" },
             method = RequestMethod.POST)
     @ResponseStatus(value = HttpStatus.CREATED)
