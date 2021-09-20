@@ -4,5 +4,7 @@ public enum Kind {
     VNF,
     PNF,
     NS,
-    VS
+    VS,
+    SPC,
+    RAD
 }

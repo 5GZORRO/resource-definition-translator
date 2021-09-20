@@ -70,19 +70,21 @@ public class TranslationService {
     }
 
     @PostConstruct
-    private void initializeOfferCatalog() {
+    public void initializeOfferCatalog() {
         try {
             getCategoryOrCreateIfNotExists(Kind.VNF, "/resourceCatalogManagement/v2/resourceCategory/filter");
             getCategoryOrCreateIfNotExists(Kind.PNF, "/resourceCatalogManagement/v2/resourceCategory/filter");
             getCategoryOrCreateIfNotExists(Kind.NS, "/serviceCatalogManagement/v4/serviceCategory/filter");
             getCategoryOrCreateIfNotExists(Kind.VS, "/serviceCatalogManagement/v4/serviceCategory/filter");
+            getCategoryOrCreateIfNotExists(Kind.SPC, "/resourceCatalogManagement/v2/resourceCategory/filter");
+            getCategoryOrCreateIfNotExists(Kind.RAD, "/resourceCatalogManagement/v2/resourceCategory/filter");
         } catch (CatalogException | IOException e) {
             log.error(e.getMessage());
             SpringApplication.exit(applicationContext, () -> -1);
         }
     }
 
-    private Pair<String, String> getCategoryOrCreateIfNotExists(Kind kind, String requestPath)
+    public Pair<String, String> getCategoryOrCreateIfNotExists(Kind kind, String requestPath)
             throws CatalogException, IOException {
 
         String name = kind.name();
@@ -91,6 +93,8 @@ public class TranslationService {
             switch(kind) {
                 case VNF:
                 case PNF:
+                case SPC:
+                case RAD:
                     ResourceCategory rc = objectMapper.readValue(EntityUtils.toString(en), ResourceCategory.class);
                     return new Pair<>(rc.getHref(), rc.getId());
 
@@ -108,6 +112,8 @@ public class TranslationService {
             switch(kind) {
                 case VNF:
                 case PNF:
+                case SPC:
+                case RAD:
                     ResourceCategoryCreate rcc = new ResourceCategoryCreate()
                             .name(name)
                             .lastUpdate(OffsetDateTime.ofInstant(Instant.now(), ZoneId.of("UTC")));
@@ -138,7 +144,7 @@ public class TranslationService {
         }
     }
 
-    private Pair<ResourceCandidate, ResourceSpecification> translateAndPostVnfd(Vnfd vnfd)
+    public Pair<ResourceCandidate, ResourceSpecification> translateAndPostVnfd(Vnfd vnfd)
             throws IOException, CatalogException {
 
         String vnfdId = vnfd.getId();
@@ -211,7 +217,7 @@ public class TranslationService {
             return translateAndPostVnfd(vnfd);
     }
 
-    private Pair<ResourceCandidate, ResourceSpecification> translateAndPostPnfd(Pnfd pnfd) throws IOException, CatalogException {
+    public Pair<ResourceCandidate, ResourceSpecification> translateAndPostPnfd(Pnfd pnfd) throws IOException, CatalogException {
 
         String pnfdId = pnfd.getId();
         ResourceSpecificationCreate rsc = translatorEngine.buildPnfdResourceSpecification(pnfd);
@@ -282,7 +288,7 @@ public class TranslationService {
             return translateAndPostPnfd(pnfd);
     }
 
-    private ResourceSpecificationRef getFromSourceAndTranslateResource(Kind kind, String resource)
+    public ResourceSpecificationRef getFromSourceAndTranslateResource(Kind kind, String resource)
             throws MissingEntityOnSourceException, SourceException, IOException, CatalogException {
 
         String infoId = translatorDescSourceInteractionService.getInfoIdFromDescriptorId(kind, resource);
@@ -317,7 +323,7 @@ public class TranslationService {
         }
     }
 
-    private ServiceSpecificationRef getFromSourceAndTranslateService(String service)
+    public ServiceSpecificationRef getFromSourceAndTranslateService(String service)
             throws MissingEntityOnSourceException, SourceException, IOException,
             CatalogException, MissingEntityOnCatalogException {
 
@@ -336,7 +342,7 @@ public class TranslationService {
         return translateNsd(nsd).getFirst().getServiceSpecification();
     }
 
-    private List<ResourceSpecificationRef> areResourcesPresent(Kind kind, List<String> resources)
+    public List<ResourceSpecificationRef> areResourcesPresent(Kind kind, List<String> resources)
             throws IOException, CatalogException, MissingEntityOnSourceException, SourceException {
 
         List<ResourceSpecificationRef> refs = new ArrayList<>();
@@ -406,7 +412,7 @@ public class TranslationService {
         return refs;
     }
 
-    private List<ServiceSpecificationRef> areServicesPresent(List<String> nsdIds)
+    public List<ServiceSpecificationRef> areServicesPresent(List<String> nsdIds)
             throws CatalogException, IOException, MissingEntityOnCatalogException,
             SourceException, MissingEntityOnSourceException {
 
@@ -474,7 +480,7 @@ public class TranslationService {
         return refs;
     }
 
-    private Pair<ServiceCandidate, ServiceSpecification> translateAndPostNsd(Nsd nsd)
+    public Pair<ServiceCandidate, ServiceSpecification> translateAndPostNsd(Nsd nsd)
             throws CatalogException, IOException, MissingEntityOnCatalogException,
             MissingEntityOnSourceException, SourceException {
 
@@ -562,5 +568,71 @@ public class TranslationService {
         }
         else
             return translateAndPostNsd(nsd);
+    }
+
+    public Pair<ResourceCandidate, ResourceSpecification> translateAndPostSpc(ResourceSpecificationCreate rsc, String spcId)
+            throws IOException, CatalogException {
+
+        log.info("Posting Resource Specification to Offer Catalog for spectrum resource " + spcId + ".");
+
+        String rscJson = objectMapper.writeValueAsString(rsc);
+        HttpEntity httpEntity = translatorCatalogInteractionService
+                .post(rscJson, "/resourceCatalogManagement/v2/resourceSpecification");
+        ResourceSpecification rs =
+                objectMapper.readValue(EntityUtils.toString(httpEntity), ResourceSpecification.class);
+
+        Pair<String, String> pair = getCategoryOrCreateIfNotExists(Kind.SPC,
+                "/resourceCatalogManagement/v2/resourceCategory/filter");
+
+        ResourceCandidateCreate rcc = translatorEngine.buildSpcResourceCandidate(pair, rs);
+
+        log.info("Posting Resource Candidate to Offer Catalog for spectrum resource " + spcId + ".");
+
+        String rccJson = objectMapper.writeValueAsString(rcc);
+        httpEntity =
+                translatorCatalogInteractionService.post(rccJson, "/resourceCatalogManagement/v2/resourceCandidate");
+        ResourceCandidate rc = objectMapper.readValue(EntityUtils.toString(httpEntity), ResourceCandidate.class);
+
+        mappingInfoService.save(new MappingInfo(spcId, rc.getId(), rs.getId()));
+
+        log.info("Spectrum Resource " + spcId + " translated & posted.");
+
+        return new Pair<>(rc, rs);
+    }
+
+    public Pair<ResourceCandidate, ResourceSpecification> translateSpc(ResourceSpecificationCreate rsc, String spcId)
+            throws IOException, CatalogException {
+
+        boolean found = true;
+        MappingInfo mappingInfo = null;
+        try {
+            mappingInfo = mappingInfoService.get(spcId);
+        } catch (NotExistingEntityException e) {
+            found = false;
+        }
+
+        if(found) {
+            Pair<ResourceCandidate, ResourceSpecification> pair = null;
+            try {
+                pair = translatorCatalogInteractionService
+                        .isResourcePresent(mappingInfo.getCandidateCatalogId(), mappingInfo.getSpecificationCatalogId());
+            } catch (MissingEntityOnCatalogException | ResourceMismatchException e) {
+                found = false;
+            }
+
+            if(found) {
+                log.info("Spectrum Resource " + spcId + " already translated and correctly posted on Offer Catalog.");
+                return pair;
+            } else {
+                try {
+                    mappingInfoService.delete(spcId);
+                } catch (NotExistingEntityException e) {
+                    log.info("Entry for " + spcId + " that should exists in DB, not found.");
+                }
+
+                return translateAndPostSpc(rsc, spcId);
+            }
+        } else
+            return translateAndPostSpc(rsc, spcId);
     }
 }
