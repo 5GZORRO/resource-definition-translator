@@ -116,12 +116,12 @@ public class TranslatorEngine {
         for(VnfdDf vnfdDf : vnfdDfs) {
             List<VnfdInstantiationlevel> vnfdInstantiationlevels = vnfdDf.getInstantiationLevel();
             if(vnfdInstantiationlevels == null)
-                continue;
+                throw new MalformattedElementException("Cannot infer vnf requirements due to empty instantiation level list");
 
             for(VnfdInstantiationlevel vnfdInstantiationlevel : vnfdInstantiationlevels) {
                 List<VnfdVdulevel> vdulevels = vnfdInstantiationlevel.getVduLevel();
                 if(vdulevels == null)
-                   continue;
+                   throw new MalformattedElementException("Cannot infer vnf requirements due to empty vdu level list");
 
                 int cpu = 0;
                 double memory = 0.0;
@@ -130,13 +130,13 @@ public class TranslatorEngine {
                 for(VnfdVdulevel vdulevel : vdulevels) {
                    String vduId = vdulevel.getVduId();
                    if(vduId == null)
-                       continue;
+                       throw new MalformattedElementException("Cannot infer vnf requirements due to missing id for vdu level");
 
                    List<VnfdVdu> vdus = vnfdVdus.stream()
                            .filter(vdu -> vdu.getId().equals(vduId))
                            .collect(Collectors.toList());
                    if(vdus.size() != 1)
-                       continue;
+                       throw new MalformattedElementException("Cannot infer vnf requirements due to missing/multiple vdu for id " + vduId);
                    VnfdVdu vdu = vdus.get(0);
 
                    String virtualComputeDescId = vdu.getVirtualComputeDesc();
@@ -145,7 +145,7 @@ public class TranslatorEngine {
                                .filter(vnfdVirtualcomputedesc -> vnfdVirtualcomputedesc.getId().equals(virtualComputeDescId))
                                .collect(Collectors.toList());
                        if(virtualcomputedescs.size() != 1)
-                           continue;
+                           throw new MalformattedElementException("Cannot infer vnf requirements due to missing/multiple virtual compute desc");
                        VnfdVirtualcomputedesc virtualcomputedesc = virtualcomputedescs.get(0);
 
                        VnfdVirtualcpu vnfdVirtualcpu = virtualcomputedesc.getVirtualCpu();
@@ -170,7 +170,7 @@ public class TranslatorEngine {
                                    .filter(virtualStorageDesc -> virtualStorageDesc.getId().equals(virtualStorageDescId))
                                    .collect(Collectors.toList());
                            if(virtualstoragedescs.size() != 1)
-                               continue;
+                               throw new MalformattedElementException("Cannot infer vnf requirements due to missing/multiple virtual storage");
                            VnfdVirtualstoragedesc virtualstoragedesc = virtualstoragedescs.get(0);
 
                            String size = virtualstoragedesc.getSizeOfStorage();
