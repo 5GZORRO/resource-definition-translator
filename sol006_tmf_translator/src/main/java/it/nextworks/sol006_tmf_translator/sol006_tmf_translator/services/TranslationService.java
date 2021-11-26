@@ -145,7 +145,7 @@ public class TranslationService {
     }
 
     public Pair<ResourceCandidate, ResourceSpecification> translateAndPostVnfd(Vnfd vnfd)
-            throws IOException, CatalogException {
+            throws IOException, CatalogException, MalformattedElementException {
 
         String vnfdId = vnfd.getId();
         ResourceSpecificationCreate rsc = translatorEngine.buildVnfdResourceSpecification(vnfd);
@@ -177,7 +177,8 @@ public class TranslationService {
         return new Pair<>(rc, rs);
     }
 
-    public Pair<ResourceCandidate, ResourceSpecification> translateVnfd(Vnfd vnfd) throws IOException, CatalogException {
+    public Pair<ResourceCandidate, ResourceSpecification> translateVnfd(Vnfd vnfd)
+            throws IOException, CatalogException, MalformattedElementException {
 
         String vnfdId = vnfd.getId();
 
@@ -289,7 +290,8 @@ public class TranslationService {
     }
 
     public ResourceSpecificationRef getFromSourceAndTranslateResource(Kind kind, String resource)
-            throws MissingEntityOnSourceException, SourceException, IOException, CatalogException {
+            throws MissingEntityOnSourceException, SourceException, IOException,
+            CatalogException, MalformattedElementException {
 
         String infoId = translatorDescSourceInteractionService.getInfoIdFromDescriptorId(kind, resource);
         HttpEntity httpEntity = translatorDescSourceInteractionService.getFromSource(kind, infoId);
@@ -325,7 +327,7 @@ public class TranslationService {
 
     public ServiceSpecificationRef getFromSourceAndTranslateService(String service)
             throws MissingEntityOnSourceException, SourceException, IOException,
-            CatalogException, MissingEntityOnCatalogException {
+            CatalogException, MissingEntityOnCatalogException, MalformattedElementException {
 
         String infoId = translatorDescSourceInteractionService.getInfoIdFromDescriptorId(Kind.NS, service);
         HttpEntity httpEntity = translatorDescSourceInteractionService.getFromSource(Kind.NS, infoId);
@@ -343,7 +345,8 @@ public class TranslationService {
     }
 
     public List<ResourceSpecificationRef> areResourcesPresent(Kind kind, List<String> resources)
-            throws IOException, CatalogException, MissingEntityOnSourceException, SourceException {
+            throws IOException, CatalogException, MissingEntityOnSourceException,
+            SourceException, MalformattedElementException {
 
         List<ResourceSpecificationRef> refs = new ArrayList<>();
         for(String resource : resources) {
@@ -414,7 +417,7 @@ public class TranslationService {
 
     public List<ServiceSpecificationRef> areServicesPresent(List<String> nsdIds)
             throws CatalogException, IOException, MissingEntityOnCatalogException,
-            SourceException, MissingEntityOnSourceException {
+            SourceException, MissingEntityOnSourceException, MalformattedElementException {
 
         List<ServiceSpecificationRef> refs = new ArrayList<>();
         for(String nsdId : nsdIds) {
@@ -482,7 +485,7 @@ public class TranslationService {
 
     public Pair<ServiceCandidate, ServiceSpecification> translateAndPostNsd(Nsd nsd)
             throws CatalogException, IOException, MissingEntityOnCatalogException,
-            MissingEntityOnSourceException, SourceException {
+            MissingEntityOnSourceException, SourceException, MalformattedElementException {
 
         List<String> vnfds = nsd.getVnfdId();
         List<ResourceSpecificationRef> vnfdRefs = new ArrayList<>();
@@ -531,7 +534,7 @@ public class TranslationService {
 
     public Pair<ServiceCandidate, ServiceSpecification> translateNsd(Nsd nsd)
             throws IOException, CatalogException, MissingEntityOnCatalogException,
-            MissingEntityOnSourceException, SourceException {
+            MissingEntityOnSourceException, SourceException, MalformattedElementException {
 
         String nsdId = nsd.getId();
 

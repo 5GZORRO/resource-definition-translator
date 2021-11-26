@@ -100,6 +100,10 @@ public class VnfdTranslatorController implements VnfdTranslatorInterface {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new ErrMsg(msg));
         } catch (CatalogException e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new ErrMsg(e.getMessage()));
+        } catch (MalformattedElementException e) {
+            String msg = e.getMessage();
+            log.error(msg);
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ErrMsg(msg));
         }
 
         try {
@@ -179,6 +183,10 @@ public class VnfdTranslatorController implements VnfdTranslatorInterface {
             translation = translationService.translateVnfd(vnfd);
         } catch (IOException | CatalogException e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new ErrMsg(e.getMessage()));
+        } catch (MalformattedElementException e) {
+            String msg = e.getMessage();
+            log.error(msg);
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ErrMsg(msg));
         }
 
         return ResponseEntity.status(HttpStatus.CREATED).body(translation);

@@ -4,6 +4,7 @@ import it.nextworks.nfvmano.libs.common.enums.*;
 import it.nextworks.nfvmano.libs.descriptors.sol006.*;
 import it.nextworks.sol006_tmf_translator.information_models.commons.Pair;
 import it.nextworks.sol006_tmf_translator.information_models.commons.enums.Kind;
+import it.nextworks.sol006_tmf_translator.sol006_tmf_translator.commons.exception.MalformattedElementException;
 import it.nextworks.tmf_offering_catalog.information_models.common.*;
 import it.nextworks.tmf_offering_catalog.information_models.resource.*;
 import it.nextworks.tmf_offering_catalog.information_models.service.*;
@@ -22,9 +23,215 @@ import java.util.stream.Collectors;
 @Service
 public class TranslatorEngine {
 
+    /*
+    private static class Requirements {
+        private Integer cpu;
+        private Double memory;
+        private Integer storage;
+
+        public Requirements(Integer cpu, Double memory, Integer storage) {
+            this.cpu = cpu;
+            this.memory = memory;
+            this.storage = storage;
+        }
+
+        public Integer getCpu() { return cpu; }
+
+        public Double getMemory() { return memory; }
+
+        public Integer getStorage() { return storage; }
+    }
+    */
+
     private static final Logger log = LoggerFactory.getLogger(TranslatorEngine.class);
 
-    public ResourceSpecificationCreate buildVnfdResourceSpecification(Vnfd vnfd) {
+    private Pair<Integer, Integer> getMinMaxInt(ArrayList<Integer> arr) {
+        Integer min = arr.get(0);
+        Integer max = arr.get(0);
+        for(int i = 1; i < arr.size(); i++) {
+            Integer curr = arr.get(i);
+            if(curr < min)
+                min = curr;
+            if(curr > max)
+                max = curr;
+        }
+
+        return new Pair<>(min, max);
+    }
+
+    private Pair<Double, Double> getMinMaxDou(ArrayList<Double> arr) {
+        Double min = arr.get(0);
+        Double max = arr.get(0);
+        for(int i = 1; i < arr.size(); i++) {
+            Double curr = arr.get(i);
+            if(curr < min)
+                min = curr;
+            if(curr > max)
+                max = curr;
+        }
+
+        return new Pair<>(min, max);
+    }
+
+    /*
+    private Pair<Requirements, Requirements> getMinMax(ArrayList<Requirements> requirements) {
+        Requirements min = requirements.get(0);
+        Requirements max = requirements.get(0);
+        for(int i = 1; i < requirements.size(); i++) {
+            Requirements curr = requirements.get(i);
+            if(curr.getCpu() <= min.getCpu() && curr.getMemory() <= min.getMemory() && curr.getStorage() <= min.getStorage())
+                min = curr;
+            if(curr.getCpu() >= max.getCpu() && curr.getMemory() >= max.getMemory() && curr.getStorage() >= max.getStorage())
+                max = curr;
+        }
+
+        return new Pair<>(min, max);
+    }
+    */
+
+    private List<ResourceSpecCharacteristic> computeVnfRequirements(Vnfd vnfd) throws MalformattedElementException {
+
+        List<VnfdDf> vnfdDfs = vnfd.getDf();
+        if(vnfdDfs == null)
+            throw new MalformattedElementException("Cannot infer vnf requirements due to missing deployment flavor list.");
+
+        List<VnfdVdu> vnfdVdus = vnfd.getVdu();
+        if(vnfdVdus == null)
+            throw new MalformattedElementException("Cannot infer vnf requirements due to missing vdu list.");
+
+        List<VnfdVirtualcomputedesc> vnfdVirtualcomputedescs = vnfd.getVirtualComputeDesc();
+        if(vnfdVirtualcomputedescs == null)
+            throw new MalformattedElementException("Cannot infer vnf requirements due to missing virtual compute desc list.");
+
+        List<VnfdVirtualstoragedesc> vnfdVirtualstoragedescs = vnfd.getVirtualStorageDesc();
+        if(vnfdVirtualstoragedescs == null)
+            throw new MalformattedElementException("Cannot infer vnf requirements due to missing virtual storage desc list.");
+
+        ArrayList<Integer> cpus = new ArrayList<>();
+        ArrayList<Double> memories = new ArrayList<>();
+        ArrayList<Integer> storages = new ArrayList<>();
+
+        // ArrayList<Requirements> requirements = new ArrayList<>();
+
+        for(VnfdDf vnfdDf : vnfdDfs) {
+            List<VnfdInstantiationlevel> vnfdInstantiationlevels = vnfdDf.getInstantiationLevel();
+            if(vnfdInstantiationlevels == null)
+                continue;
+
+            for(VnfdInstantiationlevel vnfdInstantiationlevel : vnfdInstantiationlevels) {
+                List<VnfdVdulevel> vdulevels = vnfdInstantiationlevel.getVduLevel();
+                if(vdulevels == null)
+                   continue;
+
+                int cpu = 0;
+                double memory = 0.0;
+                int storage = 0;
+
+                for(VnfdVdulevel vdulevel : vdulevels) {
+                   String vduId = vdulevel.getVduId();
+                   if(vduId == null)
+                       continue;
+
+                   List<VnfdVdu> vdus = vnfdVdus.stream()
+                           .filter(vdu -> vdu.getId().equals(vduId))
+                           .collect(Collectors.toList());
+                   if(vdus.size() != 1)
+                       continue;
+                   VnfdVdu vdu = vdus.get(0);
+
+                   String virtualComputeDescId = vdu.getVirtualComputeDesc();
+                   if(virtualComputeDescId != null) {
+                       List<VnfdVirtualcomputedesc> virtualcomputedescs = vnfdVirtualcomputedescs.stream()
+                               .filter(vnfdVirtualcomputedesc -> vnfdVirtualcomputedesc.getId().equals(virtualComputeDescId))
+                               .collect(Collectors.toList());
+                       if(virtualcomputedescs.size() != 1)
+                           continue;
+                       VnfdVirtualcomputedesc virtualcomputedesc = virtualcomputedescs.get(0);
+
+                       VnfdVirtualcpu vnfdVirtualcpu = virtualcomputedesc.getVirtualCpu();
+                       if(vnfdVirtualcpu != null) {
+                           String numVirtualCpu = vnfdVirtualcpu.getNumVirtualCpu();
+                           if(numVirtualCpu != null)
+                               cpu += Integer.parseInt(numVirtualCpu);
+                       }
+
+                       VnfdVirtualmemory vnfdVirtualmemory = virtualcomputedesc.getVirtualMemory();
+                       if(vnfdVirtualmemory != null) {
+                           Double size = vnfdVirtualmemory.getSize();
+                           if(size != null)
+                               memory += size;
+                       }
+                   }
+
+                   List<String> virtualStorageDescIds = vdu.getVirtualStorageDesc();
+                   if(virtualStorageDescIds != null) {
+                       for(String virtualStorageDescId : virtualStorageDescIds) {
+                           List<VnfdVirtualstoragedesc> virtualstoragedescs = vnfdVirtualstoragedescs.stream()
+                                   .filter(virtualStorageDesc -> virtualStorageDesc.getId().equals(virtualStorageDescId))
+                                   .collect(Collectors.toList());
+                           if(virtualstoragedescs.size() != 1)
+                               continue;
+                           VnfdVirtualstoragedesc virtualstoragedesc = virtualstoragedescs.get(0);
+
+                           String size = virtualstoragedesc.getSizeOfStorage();
+                           if(size != null)
+                               storage += Integer.parseInt(size);
+                       }
+                   }
+                }
+
+                cpus.add(cpu);
+                memories.add(memory);
+                storages.add(storage);
+                // requirements.add(new Requirements(cpu, memory, storage));
+            }
+        }
+
+        List<ResourceSpecCharacteristic> resourceSpecCharacteristics = new ArrayList<>();
+
+        ResourceSpecCharacteristic cpuRequirements =
+                new ResourceSpecCharacteristic()
+                        .name("vCPU Requirements")
+                        .description("vCPU lower bound and upper bound.");
+        List<ResourceSpecCharacteristicValue> cpuRscvs = new ArrayList<>();
+        Pair<Integer, Integer> minMaxCpu = getMinMaxInt(cpus);
+        cpuRscvs.add(new ResourceSpecCharacteristicValue()
+                .value(new Any().alias("min-vCPU").value(minMaxCpu.getFirst().toString())));
+        cpuRscvs.add(new ResourceSpecCharacteristicValue()
+                .value(new Any().alias("max-vCPU").value(minMaxCpu.getSecond().toString())));
+        cpuRequirements.setResourceSpecCharacteristicValue(cpuRscvs);
+        resourceSpecCharacteristics.add(cpuRequirements);
+
+        ResourceSpecCharacteristic memoryRequirements =
+                new ResourceSpecCharacteristic()
+                        .name("Virtual Memory Requirements")
+                        .description("Virtual Memory lower bound and upper bound.");
+        List<ResourceSpecCharacteristicValue> memoryRscvs = new ArrayList<>();
+        Pair<Double, Double> minMaxMemory = getMinMaxDou(memories);
+        memoryRscvs.add(new ResourceSpecCharacteristicValue()
+                .value(new Any().alias("min-virtual-memory").value(minMaxMemory.getFirst().toString())));
+        memoryRscvs.add(new ResourceSpecCharacteristicValue()
+                .value(new Any().alias("max-virtual-memory").value(minMaxMemory.getSecond().toString())));
+        memoryRequirements.setResourceSpecCharacteristicValue(memoryRscvs);
+        resourceSpecCharacteristics.add(memoryRequirements);
+
+        ResourceSpecCharacteristic storageRequirements =
+                new ResourceSpecCharacteristic()
+                        .name("Storage Requirements")
+                        .description("Storage lower bound and upper bound.");
+        List<ResourceSpecCharacteristicValue> storageRscvs = new ArrayList<>();
+        Pair<Integer, Integer> minMaxStorage = getMinMaxInt(storages);
+        storageRscvs.add(new ResourceSpecCharacteristicValue()
+                .value(new Any().alias("min-storage").value(minMaxStorage.getFirst().toString())));
+        storageRscvs.add(new ResourceSpecCharacteristicValue()
+                .value(new Any().alias("max-storage").value(minMaxStorage.getSecond().toString())));
+        storageRequirements.setResourceSpecCharacteristicValue(storageRscvs);
+        resourceSpecCharacteristics.add(storageRequirements);
+
+        return resourceSpecCharacteristics;
+    }
+
+    public ResourceSpecificationCreate buildVnfdResourceSpecification(Vnfd vnfd) throws MalformattedElementException {
 
         String vnfdId = vnfd.getId();
         log.info("Translating vnfd " + vnfdId + ".");
@@ -40,13 +247,16 @@ public class TranslatorEngine {
         List<ResourceSpecCharacteristic> resourceSpecCharacteristics = new ArrayList<>();
 
         ResourceSpecCharacteristic rscVnfdId = new ResourceSpecCharacteristic()
-                .description("ID of the VNF descriptor")
+                .description("ID of the VNF descriptor.")
                 .name("vnfdId")
                 .resourceSpecCharacteristicValue(Collections.singletonList(new ResourceSpecCharacteristicValue()
                         .value(new Any().alias("vnfdId").value(vnfdId))));
 
         resourceSpecCharacteristics.add(rscVnfdId);
 
+        resourceSpecCharacteristics.addAll(computeVnfRequirements(vnfd));
+
+        /*
         List<String> vnfmInfo = vnfd.getVnfmInfo();
         if(vnfmInfo == null)
             log.debug("null vnfm-info list, skipping characteristics.");
@@ -358,6 +568,7 @@ public class TranslatorEngine {
                 resourceSpecCharacteristics.add(rscIvld);
             }
         }
+        */
 
         List<ExtCpd> extCpds = vnfd.getExtCpd();
         ResourceSpecCharacteristic nExtCpd = new ResourceSpecCharacteristic()
@@ -380,6 +591,7 @@ public class TranslatorEngine {
             nExtCpd.setResourceSpecCharacteristicValue(nExtCpdValueLst);
             resourceSpecCharacteristics.add(nExtCpd);
 
+            /*
             for(ExtCpd extCpd : extCpds) {
 
                 String extCpdId = extCpd.getId();
@@ -416,8 +628,10 @@ public class TranslatorEngine {
 
                 resourceSpecCharacteristics.add(rscEc);
             }
+            */
         }
 
+        /*
         List<VnfdDf> vnfdDfs = vnfd.getDf();
         if(vnfdDfs == null)
             log.debug("null df list, skipping characteristics.");
@@ -660,6 +874,7 @@ public class TranslatorEngine {
                 resourceSpecCharacteristics.add(rscVnfdDf);
             }
         }
+        */
 
         rsc.setResourceSpecCharacteristic(resourceSpecCharacteristics);
 
