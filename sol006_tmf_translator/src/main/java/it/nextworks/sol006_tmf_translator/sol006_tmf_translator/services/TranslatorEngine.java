@@ -1244,10 +1244,228 @@ public class TranslatorEngine {
                         .name(rs.getName()));
     }
 
+    private List<ServiceSpecCharacteristic> computeNsRequirements(List<ResourceSpecification> vnfResourceSpecifications,
+                                                                  List<ServiceSpecification> nsServiceSpecifications)
+            throws MalformattedElementException {
+
+        int minCpu = 0;
+        int maxCpu = 0;
+        double minMemory = 0.0;
+        double maxMemory = 0.0;
+        int minStorage = 0;
+        int maxStorage = 0;
+
+        for(ResourceSpecification rs : vnfResourceSpecifications) {
+            String rsId = rs.getId();
+            List<ResourceSpecCharacteristic> resourceSpecCharacteristics = rs.getResourceSpecCharacteristic();
+            if(resourceSpecCharacteristics == null)
+                throw new MalformattedElementException("Cannot infer ns requirements, empty characteristic list " +
+                        "for resource specification " + rsId);
+
+            List<ResourceSpecCharacteristic> requirements = resourceSpecCharacteristics.stream()
+                    .filter(rsc -> rsc.getName().equals("vCPU Requirements"))
+                    .collect(Collectors.toList());
+            if(requirements.size() != 1)
+                throw new MalformattedElementException("Cannot infer ns requirements, missing/multiple vCPU requirements " +
+                        "for resource specification " + rsId);
+            List<ResourceSpecCharacteristicValue> rscvs = requirements.get(0).getResourceSpecCharacteristicValue();
+            if(rscvs == null)
+                throw new MalformattedElementException("Cannot infer ns requirements, empty vCPU characteristic value list " +
+                        "for resource specification " + rsId);
+            List<ResourceSpecCharacteristicValue> minCpuRscv = rscvs.stream()
+                    .filter(rscv -> rscv.getValue().getAlias().equals("min-vCPU"))
+                    .collect(Collectors.toList());
+            if(minCpuRscv.size() != 1)
+                throw new MalformattedElementException("Cannot infer ns requirements, missing/multiple min-vCPU requirements " +
+                        "for resource specification " + rsId);
+            minCpu += Integer.parseInt(minCpuRscv.get(0).getValue().getValue());
+            List<ResourceSpecCharacteristicValue> maxCpuRscv = rscvs.stream()
+                    .filter(rscv -> rscv.getValue().getAlias().equals("max-vCPU"))
+                    .collect(Collectors.toList());
+            if(maxCpuRscv.size() != 1)
+                throw new MalformattedElementException("Cannot infer ns requirements, missing/multiple max-vCPU requirement " +
+                        "for resource specification " + rsId);
+            maxCpu += Integer.parseInt(maxCpuRscv.get(0).getValue().getValue());
+
+            requirements = resourceSpecCharacteristics.stream()
+                    .filter(rsc -> rsc.getName().equals("Virtual Memory Requirements"))
+                    .collect(Collectors.toList());
+            if(requirements.size() != 1)
+                throw new MalformattedElementException("Cannot infer ns requirements, missing/multiple Virtual Memory Requirements " +
+                        "for resource specification " + rsId);
+            rscvs = requirements.get(0).getResourceSpecCharacteristicValue();
+            if(rscvs == null)
+                throw new MalformattedElementException("Cannot infer ns requirements, empty Virtual Memory characteristic value list " +
+                        "for resource specification " + rsId);
+            List<ResourceSpecCharacteristicValue> minMemoryRscv = rscvs.stream()
+                    .filter(rscv -> rscv.getValue().getAlias().equals("min-virtual-memory"))
+                    .collect(Collectors.toList());
+            if(minMemoryRscv.size() != 1)
+                throw new MalformattedElementException("Cannot infer ns requirements, missing/multiple min-virtual-memory requirement " +
+                        "for resource specification " + rsId);
+            minMemory += Double.parseDouble(minMemoryRscv.get(0).getValue().getValue());
+            List<ResourceSpecCharacteristicValue> maxMemoryRscv = rscvs.stream()
+                    .filter(rscv -> rscv.getValue().getAlias().equals("max-virtual-memory"))
+                    .collect(Collectors.toList());
+            if(maxMemoryRscv.size() != 1)
+                throw new MalformattedElementException("Cannot infer ns requirements, missing/multiple max-virtual-memory requirement " +
+                        "for resource specification " + rsId);
+            maxMemory += Double.parseDouble(maxMemoryRscv.get(0).getValue().getValue());
+
+            requirements = resourceSpecCharacteristics.stream()
+                    .filter(rsc -> rsc.getName().equals("Storage Requirements"))
+                    .collect(Collectors.toList());
+            if(requirements.size() != 1)
+                throw new MalformattedElementException("Cannot infer ns requirements, missing/multiple Storage Requirements " +
+                        "for resource specification " + rsId);
+            rscvs = requirements.get(0).getResourceSpecCharacteristicValue();
+            if(rscvs == null)
+                throw new MalformattedElementException("Cannot infer ns requirements, empty Storage characteristic value list " +
+                        "for resource specification " + rsId);
+            List<ResourceSpecCharacteristicValue> minStorageRscv = rscvs.stream()
+                    .filter(rscv -> rscv.getValue().getAlias().equals("min-storage"))
+                    .collect(Collectors.toList());
+            if(minStorageRscv.size() != 1)
+                throw new MalformattedElementException("Cannot infer ns requirements, missing/multiple min-storage requirement " +
+                        "for resource specification " + rsId);
+            minStorage += Integer.parseInt(minStorageRscv.get(0).getValue().getValue());
+            List<ResourceSpecCharacteristicValue> maxStorageRscv = rscvs.stream()
+                    .filter(rscv -> rscv.getValue().getAlias().equals("max-storage"))
+                    .collect(Collectors.toList());
+            if(maxStorageRscv.size() != 1)
+                throw new MalformattedElementException("Cannot infer ns requirements, missing/multiple max-storage requirement " +
+                        "for resource specification " + rsId);
+            maxStorage += Integer.parseInt(maxStorageRscv.get(0).getValue().getValue());
+        }
+
+        for(ServiceSpecification ss : nsServiceSpecifications) {
+            String ssId = ss.getId();
+            List<ServiceSpecCharacteristic> serviceSpecCharacteristics = ss.getServiceSpecCharacteristic();
+            if(serviceSpecCharacteristics == null)
+                throw new MalformattedElementException("Cannot infer ns requirements, empty characteristic list " +
+                        "for service specification " + ssId);
+
+            List<ServiceSpecCharacteristic> requirements = serviceSpecCharacteristics.stream()
+                    .filter(ssc -> ssc.getName().equals("vCPU Requirements"))
+                    .collect(Collectors.toList());
+            if(requirements.size() != 1)
+                throw new MalformattedElementException("Cannot infer ns requirements, missing/multiple vCPU Requirements " +
+                        "for service specification " + ssId);
+            List<ServiceSpecCharacteristicValue> sscvs = requirements.get(0).getServiceSpecCharacteristicValue();
+            if(sscvs == null)
+                throw new MalformattedElementException("Cannot infer ns requirements, empty vCPU characteristic value list " +
+                        "for service specification " + ssId);
+            List<ServiceSpecCharacteristicValue> minCpuSscv = sscvs.stream()
+                    .filter(sscv -> sscv.getValue().getAlias().equals("min-vCPU"))
+                    .collect(Collectors.toList());
+            if(minCpuSscv.size() != 1)
+                throw new MalformattedElementException("Cannot infer ns requirements, missing/multiple min-vCPU requirements " +
+                        "for service specification " + ssId);
+            minCpu += Integer.parseInt(minCpuSscv.get(0).getValue().getValue());
+            List<ServiceSpecCharacteristicValue> maxCpuSscv = sscvs.stream()
+                    .filter(sscv -> sscv.getValue().getAlias().equals("max-vCPU"))
+                    .collect(Collectors.toList());
+            if(maxCpuSscv.size() != 1)
+                throw new MalformattedElementException("Cannot infer ns requirements, missing/multiple max-vCPU requirement " +
+                        "for resource specification " + ssId);
+            maxCpu += Integer.parseInt(maxCpuSscv.get(0).getValue().getValue());
+
+            requirements = serviceSpecCharacteristics.stream()
+                    .filter(ssc -> ssc.getName().equals("Virtual Memory Requirements"))
+                    .collect(Collectors.toList());
+            if(requirements.size() != 1)
+                throw new MalformattedElementException("Cannot infer ns requirements, missing/multiple Virtual Memory Requirements " +
+                        "for service specification " + ssId);
+            sscvs = requirements.get(0).getServiceSpecCharacteristicValue();
+            if(sscvs == null)
+                throw new MalformattedElementException("Cannot infer ns requirements, empty Virtual Memory characteristic value list " +
+                        "for service specification " + ssId);
+            List<ServiceSpecCharacteristicValue> minMemorySscv = sscvs.stream()
+                    .filter(sscv -> sscv.getValue().getAlias().equals("min-virtual-memory"))
+                    .collect(Collectors.toList());
+            if(minMemorySscv.size() != 1)
+                throw new MalformattedElementException("Cannot infer ns requirements, missing/multiple min-virtual-memory requirements " +
+                        "for service specification " + ssId);
+            minMemory += Double.parseDouble(minMemorySscv.get(0).getValue().getValue());
+            List<ServiceSpecCharacteristicValue> maxMemorySscv = sscvs.stream()
+                    .filter(sscv -> sscv.getValue().getAlias().equals("max-virtual-memory"))
+                    .collect(Collectors.toList());
+            if(maxMemorySscv.size() != 1)
+                throw new MalformattedElementException("Cannot infer ns requirements, missing/multiple max-virtual-memory requirements " +
+                        "for service specification " + ssId);
+            maxMemory += Double.parseDouble(maxMemorySscv.get(0).getValue().getValue());
+
+            requirements = serviceSpecCharacteristics.stream()
+                    .filter(ssc -> ssc.getName().equals("Storage Requirements"))
+                    .collect(Collectors.toList());
+            if(requirements.size() != 1)
+                throw new MalformattedElementException("Cannot infer ns requirements, missing/multiple Storage Requirements " +
+                        "for service specification " + ssId);
+            sscvs = requirements.get(0).getServiceSpecCharacteristicValue();
+            if(sscvs == null)
+                throw new MalformattedElementException("Cannot infer ns requirements, empty Storage characteristic value list " +
+                        "for service specification " + ssId);
+            List<ServiceSpecCharacteristicValue> minStorageSscv = sscvs.stream()
+                    .filter(sscv -> sscv.getValue().getAlias().equals("min-storage"))
+                    .collect(Collectors.toList());
+            if(minMemorySscv.size() != 1)
+                throw new MalformattedElementException("Cannot infer ns requirements, missing/multiple min-storage requirements " +
+                        "for service specification " + ssId);
+            minStorage += Integer.parseInt(minStorageSscv.get(0).getValue().getValue());
+            List<ServiceSpecCharacteristicValue> maxStorageSscv = sscvs.stream()
+                    .filter(sscv -> sscv.getValue().getAlias().equals("max-storage"))
+                    .collect(Collectors.toList());
+            if(maxMemorySscv.size() != 1)
+                throw new MalformattedElementException("Cannot infer ns requirements, missing/multiple max-storage requirements " +
+                        "for service specification " + ssId);
+            maxStorage += Integer.parseInt(maxStorageSscv.get(0).getValue().getValue());
+        }
+
+        List<ServiceSpecCharacteristic> serviceSpecCharacteristics = new ArrayList<>();
+
+        ServiceSpecCharacteristic cpuRequirements =
+                new ServiceSpecCharacteristic()
+                        .name("vCPU Requirements")
+                        .description("vCPU lower bound and upper bound.");
+        List<ServiceSpecCharacteristicValue> cpuSscv = new ArrayList<>();
+        cpuSscv.add(new ServiceSpecCharacteristicValue()
+                .value(new Any().alias("min-vCPU").value(String.valueOf(minCpu))));
+        cpuSscv.add(new ServiceSpecCharacteristicValue()
+                .value(new Any().alias("max-vCPU").value(String.valueOf(maxCpu))));
+        cpuRequirements.setServiceSpecCharacteristicValue(cpuSscv);
+        serviceSpecCharacteristics.add(cpuRequirements);
+
+        ServiceSpecCharacteristic memoryRequirements =
+                new ServiceSpecCharacteristic()
+                        .name("Virtual Memory Requirements")
+                        .description("Virtual Memory lower bound and upper bound.");
+        List<ServiceSpecCharacteristicValue> memorySscv = new ArrayList<>();
+        memorySscv.add(new ServiceSpecCharacteristicValue()
+                .value(new Any().alias("min-virtual-memory").value(String.valueOf(minMemory))));
+        memorySscv.add(new ServiceSpecCharacteristicValue()
+                .value(new Any().alias("max-virtual-memory").value(String.valueOf(maxMemory))));
+        memoryRequirements.setServiceSpecCharacteristicValue(memorySscv);
+        serviceSpecCharacteristics.add(memoryRequirements);
+
+        ServiceSpecCharacteristic storageRequirements =
+                new ServiceSpecCharacteristic()
+                        .name("Storage Requirements")
+                        .description("Storage lower bound and upper bound.");
+        List<ServiceSpecCharacteristicValue> storageSscv = new ArrayList<>();
+        storageSscv.add(new ServiceSpecCharacteristicValue()
+                .value(new Any().alias("min-storage").value(String.valueOf(minStorage))));
+        storageSscv.add(new ServiceSpecCharacteristicValue()
+                .value(new Any().alias("max-storage").value(String.valueOf(maxStorage))));
+        storageRequirements.setServiceSpecCharacteristicValue(storageSscv);
+        serviceSpecCharacteristics.add(storageRequirements);
+
+        return serviceSpecCharacteristics;
+    }
+
     public ServiceSpecificationCreate buildNsdServiceSpecification(Nsd nsd,
-                                                                   List<ResourceSpecificationRef> vnfdRefs,
-                                                                   List<ResourceSpecificationRef> pnfdRefs,
-                                                                   List<ServiceSpecificationRef> nsdRefs) {
+                                                                   List<ResourceSpecification> vnfResourceSpecifications,
+                                                                   List<ResourceSpecification> pnfResourceSpecifications,
+                                                                   List<ServiceSpecification> nsServiceSpecifications) throws MalformattedElementException {
 
         String nsdId = nsd.getId();
         log.info("Translating nsd " + nsdId + ".");
@@ -1264,29 +1482,29 @@ public class TranslatorEngine {
 
         List<ResourceSpecificationRef> rsRefs = new ArrayList<>();
 
-        for(ResourceSpecificationRef vnfdRef : vnfdRefs) {
+        for(ResourceSpecification rs : vnfResourceSpecifications) {
             rsRefs.add(new ResourceSpecificationRef()
-                    .id(vnfdRef.getId())
-                    .href(vnfdRef.getHref())
-                    .name(vnfdRef.getName()));
+                    .id(rs.getId())
+                    .href(rs.getHref())
+                    .name(rs.getName()));
         }
 
-        for(ResourceSpecificationRef pnfdRef : pnfdRefs) {
+        for(ResourceSpecification rs : pnfResourceSpecifications) {
             rsRefs.add(new ResourceSpecificationRef()
-                    .id(pnfdRef.getId())
-                    .href(pnfdRef.getHref())
-                    .name(pnfdRef.getName()));
+                    .id(rs.getId())
+                    .href(rs.getHref())
+                    .name(rs.getName()));
         }
 
         ssc.setResourceSpecification(rsRefs);
 
         List<ServiceSpecRelationship> ssrRefs = new ArrayList<>();
 
-        for(ServiceSpecificationRef nsdRef : nsdRefs) {
+        for(ServiceSpecification ss : nsServiceSpecifications) {
             ssrRefs.add(new ServiceSpecRelationship()
-                    .id(nsdRef.getId())
-                    .href(nsdRef.getHref())
-                    .name(nsdRef.getName()));
+                    .id(ss.getId())
+                    .href(ss.getHref())
+                    .name(ss.getName()));
         }
 
         ssc.setServiceSpecRelationship(ssrRefs);
@@ -1298,6 +1516,9 @@ public class TranslatorEngine {
 
         serviceSpecCharacteristics.add(sscNsdId);
 
+        serviceSpecCharacteristics.addAll(computeNsRequirements(vnfResourceSpecifications, nsServiceSpecifications));
+
+        /*
         List<NsdSapd> nsdSapds = nsd.getSapd();
         if(nsdSapds == null)
             log.debug("null sapd list, skipping characteristics.");
@@ -2058,6 +2279,7 @@ public class TranslatorEngine {
                 serviceSpecCharacteristics.add(sscDf);
             }
         }
+        */
 
         ssc.setServiceSpecCharacteristic(serviceSpecCharacteristics);
 

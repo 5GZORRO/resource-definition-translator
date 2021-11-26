@@ -289,7 +289,7 @@ public class TranslationService {
             return translateAndPostPnfd(pnfd);
     }
 
-    public ResourceSpecificationRef getFromSourceAndTranslateResource(Kind kind, String resource)
+    public ResourceSpecification getFromSourceAndTranslateResource(Kind kind, String resource)
             throws MissingEntityOnSourceException, SourceException, IOException,
             CatalogException, MalformattedElementException {
 
@@ -307,7 +307,7 @@ public class TranslationService {
                     objectMapper = new ObjectMapper(new YAMLFactory());
                     vnfd = objectMapper.readValue(vnfdStringFromEntity, Vnfd.class);
                 }
-                return translateVnfd(vnfd).getFirst().getResourceSpecification();
+                return translateVnfd(vnfd).getSecond();
 
             case PNF:
                 String pnfdStringFromEntity = EntityUtils.toString(httpEntity);
@@ -318,14 +318,14 @@ public class TranslationService {
                     objectMapper = new ObjectMapper(new YAMLFactory());
                     pnfd = objectMapper.readValue(pnfdStringFromEntity, Pnfd.class);
                 }
-                return translatePnfd(pnfd).getFirst().getResourceSpecification();
+                return translatePnfd(pnfd).getSecond();
 
             default:
                 return null;
         }
     }
 
-    public ServiceSpecificationRef getFromSourceAndTranslateService(String service)
+    public ServiceSpecification getFromSourceAndTranslateService(String service)
             throws MissingEntityOnSourceException, SourceException, IOException,
             CatalogException, MissingEntityOnCatalogException, MalformattedElementException {
 
@@ -341,14 +341,14 @@ public class TranslationService {
             objectMapper = new ObjectMapper(new YAMLFactory());
             nsd = objectMapper.readValue(nsdStringFromEntity, Nsd.class);
         }
-        return translateNsd(nsd).getFirst().getServiceSpecification();
+        return translateNsd(nsd).getSecond();
     }
 
-    public List<ResourceSpecificationRef> areResourcesPresent(Kind kind, List<String> resources)
+    public List<ResourceSpecification> areResourcesPresent(Kind kind, List<String> resources)
             throws IOException, CatalogException, MissingEntityOnSourceException,
             SourceException, MalformattedElementException {
 
-        List<ResourceSpecificationRef> refs = new ArrayList<>();
+        List<ResourceSpecification> resourceSpecifications = new ArrayList<>();
         for(String resource : resources) {
 
             boolean found = true;
@@ -360,18 +360,18 @@ public class TranslationService {
             }
 
             if(found) {
-                ResourceSpecificationRef ref = null;
+                ResourceSpecification resourceSpecification = null;
                 try {
-                    ref = translatorCatalogInteractionService
+                    resourceSpecification = translatorCatalogInteractionService
                             .isResourcePresent(mappingInfo.getCandidateCatalogId(),
-                                    mappingInfo.getSpecificationCatalogId()).getFirst().getResourceSpecification();
+                                    mappingInfo.getSpecificationCatalogId()).getSecond();
                 } catch (MissingEntityOnCatalogException | ResourceMismatchException e) {
                     found = false;
                 }
 
                 if(found) {
                     log.info("Resource " + resource + " exist and correctly posted on Offer Catalog.");
-                    refs.add(ref);
+                    resourceSpecifications.add(resourceSpecification);
                 }
                 else {
                     log.info("Resource " +  resource + " not exist in Offer Catalog, trying to retrieve from " +
@@ -383,43 +383,43 @@ public class TranslationService {
                         log.info("Entry for " + resource + " that should exists in DB, not found.");
                     }
 
-                    ResourceSpecificationRef newRef;
+                    ResourceSpecification newResourceSpecification;
                     try {
-                        newRef = getFromSourceAndTranslateResource(kind, resource);
+                        newResourceSpecification = getFromSourceAndTranslateResource(kind, resource);
                     } catch (MissingEntityOnSourceException e) {
                         String msg = "Resource " + resource + " missing in descriptors source, abort.";
                         log.info(msg);
                         throw new MissingEntityOnSourceException(msg);
                     }
 
-                    refs.add(newRef);
+                    resourceSpecifications.add(newResourceSpecification);
                 }
             }
             else {
                 log.info("Resource " +  resource + " not translated, trying to retrieve from " +
                         "descriptors source in order to translate.");
 
-                ResourceSpecificationRef newRef;
+                ResourceSpecification newResourceSpecification;
                 try {
-                    newRef = getFromSourceAndTranslateResource(kind, resource);
+                    newResourceSpecification = getFromSourceAndTranslateResource(kind, resource);
                 } catch (MissingEntityOnSourceException e) {
                     String msg = "Resource " + resource + " missing in descriptors source, abort.";
                     log.info(msg);
                     throw new MissingEntityOnSourceException(msg);
                 }
 
-                refs.add(newRef);
+                resourceSpecifications.add(newResourceSpecification);
             }
         }
 
-        return refs;
+        return resourceSpecifications;
     }
 
-    public List<ServiceSpecificationRef> areServicesPresent(List<String> nsdIds)
+    public List<ServiceSpecification> areServicesPresent(List<String> nsdIds)
             throws CatalogException, IOException, MissingEntityOnCatalogException,
             SourceException, MissingEntityOnSourceException, MalformattedElementException {
 
-        List<ServiceSpecificationRef> refs = new ArrayList<>();
+        List<ServiceSpecification> serviceSpecifications = new ArrayList<>();
         for(String nsdId : nsdIds) {
 
             boolean found = true;
@@ -431,18 +431,18 @@ public class TranslationService {
             }
 
             if(found) {
-                ServiceSpecificationRef ref = null;
+                ServiceSpecification serviceSpecification = null;
                 try {
-                    ref = translatorCatalogInteractionService
+                    serviceSpecification = translatorCatalogInteractionService
                             .isServicePresent(mappingInfo.getCandidateCatalogId(),
-                                    mappingInfo.getSpecificationCatalogId()).getFirst().getServiceSpecification();
+                                    mappingInfo.getSpecificationCatalogId()).getSecond();
                 } catch (MissingEntityOnCatalogException | ResourceMismatchException e) {
                     found = false;
                 }
 
                 if(found) {
                     log.info("Service " + nsdId + " exist and correctly posted on Offer Catalog.");
-                    refs.add(ref);
+                    serviceSpecifications.add(serviceSpecification);
                 }
                 else {
                     try {
@@ -451,36 +451,36 @@ public class TranslationService {
                         log.info("Entry for " + nsdId + " that should exists in DB, not found.");
                     }
 
-                    ServiceSpecificationRef newRef;
+                    ServiceSpecification newServiceSpecification;
                     try {
-                        newRef = getFromSourceAndTranslateService(nsdId);
+                        newServiceSpecification = getFromSourceAndTranslateService(nsdId);
                     } catch (MissingEntityOnSourceException e) {
                         String msg = "Service " + nsdId + " missing on descriptors source, abort.";
                         log.info(msg);
                         throw new MissingEntityOnSourceException(msg);
                     }
 
-                    refs.add(newRef);
+                    serviceSpecifications.add(newServiceSpecification);
                 }
             }
             else {
                 log.info("Service " + nsdId + " not translated, trying to retrieve from " +
                         "descriptors source in order to translate.");
 
-                ServiceSpecificationRef newRef;
+                ServiceSpecification newServiceSpecification;
                 try {
-                    newRef = getFromSourceAndTranslateService(nsdId);
+                    newServiceSpecification = getFromSourceAndTranslateService(nsdId);
                 } catch (MissingEntityOnSourceException e) {
                     String msg = "Service " + nsdId + " missing on descriptors source, abort.";
                     log.info(msg);
                     throw new MissingEntityOnSourceException(msg);
                 }
 
-                refs.add(newRef);
+                serviceSpecifications.add(newServiceSpecification);
             }
         }
 
-        return refs;
+        return serviceSpecifications;
     }
 
     public Pair<ServiceCandidate, ServiceSpecification> translateAndPostNsd(Nsd nsd)
@@ -488,23 +488,23 @@ public class TranslationService {
             MissingEntityOnSourceException, SourceException, MalformattedElementException {
 
         List<String> vnfds = nsd.getVnfdId();
-        List<ResourceSpecificationRef> vnfdRefs = new ArrayList<>();
+        List<ResourceSpecification> vnfResourceSpecifications = new ArrayList<>();
         if(vnfds != null)
-            vnfdRefs = areResourcesPresent(Kind.VNF, vnfds);
+            vnfResourceSpecifications = areResourcesPresent(Kind.VNF, vnfds);
 
         List<String> pnfds = nsd.getPnfdId();
-        List<ResourceSpecificationRef> pnfdRefs = new ArrayList<>();
+        List<ResourceSpecification> pnfResourceSpecifications = new ArrayList<>();
         if(pnfds != null)
-            pnfdRefs = areResourcesPresent(Kind.PNF, pnfds);
+            pnfResourceSpecifications = areResourcesPresent(Kind.PNF, pnfds);
 
         List<String> nsdIds = nsd.getNestedNsdId();
-        List<ServiceSpecificationRef> nsdRefs = new ArrayList<>();
+        List<ServiceSpecification> nsServiceSpecifications = new ArrayList<>();
         if(nsdIds != null)
-            nsdRefs = areServicesPresent(nsdIds);
+            nsServiceSpecifications = areServicesPresent(nsdIds);
 
         String nsdId = nsd.getId();
         ServiceSpecificationCreate ssc =
-                translatorEngine.buildNsdServiceSpecification(nsd, vnfdRefs, pnfdRefs, nsdRefs);
+                translatorEngine.buildNsdServiceSpecification(nsd, vnfResourceSpecifications, pnfResourceSpecifications, nsServiceSpecifications);
 
         log.info("Posting Service Specification to Offer Catalog for nsd " + nsdId + ".");
 
