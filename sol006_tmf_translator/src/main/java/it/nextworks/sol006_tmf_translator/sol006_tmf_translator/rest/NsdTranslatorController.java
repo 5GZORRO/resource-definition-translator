@@ -93,7 +93,7 @@ public class NsdTranslatorController implements NsdTranslatorInterface {
 
         Pair<ServiceCandidate, ServiceSpecification> translation;
         try {
-            translation = translationService.translateNsd(nsd);
+            translation = translationService.translateNsd(nsd, null);
         } catch (IOException e) {
             String msg = e.getMessage();
             log.error(msg);
@@ -140,7 +140,10 @@ public class NsdTranslatorController implements NsdTranslatorInterface {
             method = RequestMethod.POST)
     @ResponseStatus(value = HttpStatus.CREATED)
     public ResponseEntity<?>
-    translateNsdById(@ApiParam(value = "ns package info ID of the ns to be translated.", required = true) @PathVariable("nsPkgInfoId") String nsPkgInfoId) {
+    translateNsdById(@ApiParam(value = "ns package info ID of the ns to be translated.", required = true)
+                     @PathVariable("nsPkgInfoId") String nsPkgInfoId,
+                     @ApiParam(value = "Type of the service to be translated.")
+                     @RequestParam(value = "serviceType", required = false) String serviceType) {
 
         log.info("Received request to translate & post nsd for ns with ns package info id " + nsPkgInfoId + ".");
 
@@ -182,7 +185,7 @@ public class NsdTranslatorController implements NsdTranslatorInterface {
 
         Pair<ServiceCandidate, ServiceSpecification> translation;
         try {
-            translation = translationService.translateNsd(nsd);
+            translation = translationService.translateNsd(nsd, serviceType);
         } catch (IOException | CatalogException | SourceException e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new ErrMsg(e.getMessage()));
         } catch (MissingEntityOnSourceException | MissingEntityOnCatalogException e) {

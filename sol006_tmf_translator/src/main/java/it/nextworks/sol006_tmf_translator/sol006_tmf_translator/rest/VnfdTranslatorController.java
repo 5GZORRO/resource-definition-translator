@@ -93,7 +93,7 @@ public class VnfdTranslatorController implements VnfdTranslatorInterface {
 
         Pair<ResourceCandidate, ResourceSpecification> translation;
         try {
-            translation = translationService.translateVnfd(vnfd);
+            translation = translationService.translateVnfd(vnfd, null);
         } catch (IOException e) {
             String msg = e.getMessage();
             log.error(msg);
@@ -138,7 +138,10 @@ public class VnfdTranslatorController implements VnfdTranslatorInterface {
             method = RequestMethod.POST)
     @ResponseStatus(value = HttpStatus.CREATED)
     public ResponseEntity<?>
-    translateVnfdById(@ApiParam(value = "vnf package info ID of the vnf to be translated.", required = true) @PathVariable("vnfPkgInfoId") String vnfPkgInfoId) {
+    translateVnfdById(@ApiParam(value = "vnf package info ID of the vnf to be translated.", required = true)
+                      @PathVariable("vnfPkgInfoId") String vnfPkgInfoId,
+                      @ApiParam(value = "Type of the function to be translated.")
+                      @RequestParam(value = "functionType", required = false) String functionType) {
 
         log.info("Received request to translate & post vnfd for vnf with vnf package info id " + vnfPkgInfoId + ".");
 
@@ -180,7 +183,7 @@ public class VnfdTranslatorController implements VnfdTranslatorInterface {
 
         Pair<ResourceCandidate, ResourceSpecification> translation;
         try {
-            translation = translationService.translateVnfd(vnfd);
+            translation = translationService.translateVnfd(vnfd, functionType);
         } catch (IOException | CatalogException e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new ErrMsg(e.getMessage()));
         } catch (MalformattedElementException e) {

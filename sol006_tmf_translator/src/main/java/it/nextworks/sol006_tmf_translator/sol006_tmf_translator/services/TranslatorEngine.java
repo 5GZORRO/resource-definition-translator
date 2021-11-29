@@ -231,7 +231,7 @@ public class TranslatorEngine {
         return resourceSpecCharacteristics;
     }
 
-    public ResourceSpecificationCreate buildVnfdResourceSpecification(Vnfd vnfd) throws MalformattedElementException {
+    public ResourceSpecificationCreate buildVnfdResourceSpecification(Vnfd vnfd, String functionType) throws MalformattedElementException {
 
         String vnfdId = vnfd.getId();
         log.info("Translating vnfd " + vnfdId + ".");
@@ -255,6 +255,14 @@ public class TranslatorEngine {
         resourceSpecCharacteristics.add(rscVnfdId);
 
         resourceSpecCharacteristics.addAll(computeVnfRequirements(vnfd));
+
+        if(functionType != null) {
+            resourceSpecCharacteristics.add(new ResourceSpecCharacteristic()
+                    .description("Network function managed by this VNF.")
+                    .name("Function Type")
+                    .resourceSpecCharacteristicValue(Collections.singletonList(new ResourceSpecCharacteristicValue()
+                            .value(new Any().alias("functionType").value(functionType)))));
+        }
 
         /*
         List<String> vnfmInfo = vnfd.getVnfmInfo();
@@ -1465,7 +1473,8 @@ public class TranslatorEngine {
     public ServiceSpecificationCreate buildNsdServiceSpecification(Nsd nsd,
                                                                    List<ResourceSpecification> vnfResourceSpecifications,
                                                                    List<ResourceSpecification> pnfResourceSpecifications,
-                                                                   List<ServiceSpecification> nsServiceSpecifications) throws MalformattedElementException {
+                                                                   List<ServiceSpecification> nsServiceSpecifications,
+                                                                   String serviceType) throws MalformattedElementException {
 
         String nsdId = nsd.getId();
         log.info("Translating nsd " + nsdId + ".");
@@ -1510,6 +1519,7 @@ public class TranslatorEngine {
         ssc.setServiceSpecRelationship(ssrRefs);
 
         ServiceSpecCharacteristic sscNsdId = new ServiceSpecCharacteristic()
+                .description("ID of the NS Descriptor")
                 .name("nsdId")
                 .serviceSpecCharacteristicValue(Collections.singletonList(new ServiceSpecCharacteristicValue()
                         .value(new Any().alias("nsdId").value(nsdId))));
@@ -1517,6 +1527,14 @@ public class TranslatorEngine {
         serviceSpecCharacteristics.add(sscNsdId);
 
         serviceSpecCharacteristics.addAll(computeNsRequirements(vnfResourceSpecifications, nsServiceSpecifications));
+
+        if(serviceType != null) {
+            serviceSpecCharacteristics.add(new ServiceSpecCharacteristic()
+                    .description("Network service managed by this NS.")
+                    .name("Service Type")
+                    .serviceSpecCharacteristicValue(Collections.singletonList(new ServiceSpecCharacteristicValue()
+                            .value(new Any().alias("serviceType").value(serviceType)))));
+        }
 
         /*
         List<NsdSapd> nsdSapds = nsd.getSapd();

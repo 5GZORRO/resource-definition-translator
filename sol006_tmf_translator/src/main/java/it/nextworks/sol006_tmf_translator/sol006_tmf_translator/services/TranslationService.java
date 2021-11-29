@@ -12,8 +12,6 @@ import it.nextworks.sol006_tmf_translator.information_models.persistence.Mapping
 import it.nextworks.sol006_tmf_translator.sol006_tmf_translator.commons.config.CustomOffsetDateTimeSerializer;
 import it.nextworks.sol006_tmf_translator.information_models.commons.enums.Kind;
 import it.nextworks.sol006_tmf_translator.sol006_tmf_translator.commons.exception.*;
-import it.nextworks.tmf_offering_catalog.information_models.common.ResourceSpecificationRef;
-import it.nextworks.tmf_offering_catalog.information_models.common.ServiceSpecificationRef;
 import it.nextworks.tmf_offering_catalog.information_models.resource.*;
 import it.nextworks.tmf_offering_catalog.information_models.service.*;
 import org.apache.http.HttpEntity;
@@ -144,11 +142,11 @@ public class TranslationService {
         }
     }
 
-    public Pair<ResourceCandidate, ResourceSpecification> translateAndPostVnfd(Vnfd vnfd)
+    public Pair<ResourceCandidate, ResourceSpecification> translateAndPostVnfd(Vnfd vnfd, String functionType)
             throws IOException, CatalogException, MalformattedElementException {
 
         String vnfdId = vnfd.getId();
-        ResourceSpecificationCreate rsc = translatorEngine.buildVnfdResourceSpecification(vnfd);
+        ResourceSpecificationCreate rsc = translatorEngine.buildVnfdResourceSpecification(vnfd, functionType);
 
         log.info("Posting Resource Specification to Offer Catalog for vnfd " + vnfdId + ".");
 
@@ -177,7 +175,7 @@ public class TranslationService {
         return new Pair<>(rc, rs);
     }
 
-    public Pair<ResourceCandidate, ResourceSpecification> translateVnfd(Vnfd vnfd)
+    public Pair<ResourceCandidate, ResourceSpecification> translateVnfd(Vnfd vnfd, String functionType)
             throws IOException, CatalogException, MalformattedElementException {
 
         String vnfdId = vnfd.getId();
@@ -211,11 +209,11 @@ public class TranslationService {
                     log.info("Entry for " + vnfdId + " that should exists in DB, not found.");
                 }
 
-                return translateAndPostVnfd(vnfd);
+                return translateAndPostVnfd(vnfd, functionType);
             }
         }
         else
-            return translateAndPostVnfd(vnfd);
+            return translateAndPostVnfd(vnfd, functionType);
     }
 
     public Pair<ResourceCandidate, ResourceSpecification> translateAndPostPnfd(Pnfd pnfd) throws IOException, CatalogException {
@@ -307,7 +305,7 @@ public class TranslationService {
                     objectMapper = new ObjectMapper(new YAMLFactory());
                     vnfd = objectMapper.readValue(vnfdStringFromEntity, Vnfd.class);
                 }
-                return translateVnfd(vnfd).getSecond();
+                return translateVnfd(vnfd, null).getSecond();
 
             case PNF:
                 String pnfdStringFromEntity = EntityUtils.toString(httpEntity);
@@ -341,7 +339,7 @@ public class TranslationService {
             objectMapper = new ObjectMapper(new YAMLFactory());
             nsd = objectMapper.readValue(nsdStringFromEntity, Nsd.class);
         }
-        return translateNsd(nsd).getSecond();
+        return translateNsd(nsd, null).getSecond();
     }
 
     public List<ResourceSpecification> areResourcesPresent(Kind kind, List<String> resources)
@@ -483,7 +481,7 @@ public class TranslationService {
         return serviceSpecifications;
     }
 
-    public Pair<ServiceCandidate, ServiceSpecification> translateAndPostNsd(Nsd nsd)
+    public Pair<ServiceCandidate, ServiceSpecification> translateAndPostNsd(Nsd nsd, String serviceType)
             throws CatalogException, IOException, MissingEntityOnCatalogException,
             MissingEntityOnSourceException, SourceException, MalformattedElementException {
 
@@ -504,7 +502,8 @@ public class TranslationService {
 
         String nsdId = nsd.getId();
         ServiceSpecificationCreate ssc =
-                translatorEngine.buildNsdServiceSpecification(nsd, vnfResourceSpecifications, pnfResourceSpecifications, nsServiceSpecifications);
+                translatorEngine.buildNsdServiceSpecification(nsd, vnfResourceSpecifications,
+                        pnfResourceSpecifications, nsServiceSpecifications, serviceType);
 
         log.info("Posting Service Specification to Offer Catalog for nsd " + nsdId + ".");
 
@@ -532,7 +531,7 @@ public class TranslationService {
         return new Pair<>(sc, ss);
     }
 
-    public Pair<ServiceCandidate, ServiceSpecification> translateNsd(Nsd nsd)
+    public Pair<ServiceCandidate, ServiceSpecification> translateNsd(Nsd nsd, String serviceType)
             throws IOException, CatalogException, MissingEntityOnCatalogException,
             MissingEntityOnSourceException, SourceException, MalformattedElementException {
 
@@ -566,11 +565,11 @@ public class TranslationService {
                     log.info("Entry for " + nsdId + " that should exists in DB, not found.");
                 }
 
-                return translateAndPostNsd(nsd);
+                return translateAndPostNsd(nsd, serviceType);
             }
         }
         else
-            return translateAndPostNsd(nsd);
+            return translateAndPostNsd(nsd, serviceType);
     }
 
     public Pair<ResourceCandidate, ResourceSpecification> translateAndPostSpc(ResourceSpecificationCreate rsc, String spcId)
