@@ -12,6 +12,7 @@ import it.nextworks.sol006_tmf_translator.information_models.persistence.Mapping
 import it.nextworks.sol006_tmf_translator.sol006_tmf_translator.commons.config.CustomOffsetDateTimeSerializer;
 import it.nextworks.sol006_tmf_translator.information_models.commons.enums.Kind;
 import it.nextworks.sol006_tmf_translator.sol006_tmf_translator.commons.exception.*;
+import it.nextworks.tmf_offering_catalog.information_models.product.*;
 import it.nextworks.tmf_offering_catalog.information_models.resource.*;
 import it.nextworks.tmf_offering_catalog.information_models.service.*;
 import org.apache.http.HttpEntity;
@@ -29,6 +30,8 @@ import org.threeten.bp.ZoneId;
 import javax.annotation.PostConstruct;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 @Service
@@ -572,14 +575,63 @@ public class TranslationService {
             return translateAndPostNsd(nsd, serviceType);
     }
 
-    public Pair<ResourceCandidate, ResourceSpecification> translateAndPostSpc(ResourceSpecificationCreate rsc, String spcId)
-            throws IOException, CatalogException {
+    private Pair<String, String> getGeographicAddressOrCreate(GeographicAddressCreate geographicAddressCreate)
+            throws CatalogException, IOException, MalformattedElementException {
+
+        if(geographicAddressCreate == null)
+            throw new MalformattedElementException("Empty Geographic Address, cannot build Resource Specification.");
+
+        GeographicLocation geographicLocation = geographicAddressCreate.getGeographicLocation();
+        if(geographicLocation == null)
+            throw new MalformattedElementException("Empty Geographic Location in Geographic Address, cannot build Resource Specification.");
+
+        List<GeographicPoint> geographicPoints = geographicLocation.getGeometry();
+        if(geographicPoints == null || geographicPoints.isEmpty())
+            throw new MalformattedElementException("Empty Geographic Point in Geographic Location, cannot build Resource Specification.");
+
+        GeographicPoint geographicPoint = geographicPoints.get(0);
+        String x = geographicPoint.getX();
+        String y = geographicPoint.getY();
+
+        log.info("Checking if GeographicAddress with coordinate <{}, {}> exists in Offer Catalog.", x, y);
+
+        List<GeographicAddress> geographicAddresses = null;
+        try {
+            geographicAddresses = Arrays.asList(objectMapper.readValue(EntityUtils
+                    .toString(translatorCatalogInteractionService.getFromCatalog("/geographicAddressManagement/v4/geographicAddress/coordinates",
+                            "?x=" + x + "&y=" + y)), GeographicAddress[].class));
+        } catch (MissingEntityOnCatalogException ignored) {}
+
+        if((geographicAddresses != null ? geographicAddresses.size() : 0) != 1) {
+            log.info("No or multiple Geographic Address with coordinates <{}, {}> found in the Offer Catalog, creating new Geographic Address.", x, y);
+
+            GeographicAddressValidationCreate geographicAddressValidationCreate =
+                    new GeographicAddressValidationCreate().submittedGeographicAddress(geographicAddressCreate);
+            HttpEntity httpEntity = translatorCatalogInteractionService.post(objectMapper.writeValueAsString(geographicAddressValidationCreate),
+                    "/geographicAddressManagement/v4/geographicAddressValidation");
+            GeographicAddress geographicAddress = objectMapper.readValue(EntityUtils.toString(httpEntity), GeographicAddress.class);
+
+            return new Pair<>(geographicAddress.getId(), geographicAddress.getHref());
+        }
+
+        GeographicAddress geographicAddress = geographicAddresses.get(0);
+        return new Pair<>(geographicAddress.getId(), geographicAddress.getHref());
+    }
+
+    public Pair<ResourceCandidate, ResourceSpecification> translateAndPostSpc(TranslatorRAPPInteractionService.RAPPWrapper rappWrapper, String spcId)
+            throws IOException, CatalogException, MalformattedElementException {
+
+        Pair<String, String> geographicAddressRef = getGeographicAddressOrCreate(rappWrapper.getGeographicAddressCreate());
+        ResourceSpecificationCreate resourceSpecificationCreate = rappWrapper.getResourceSpecificationCreate();
+        resourceSpecificationCreate.setFeature(Collections.singletonList(new Feature()
+                .name("Geographic Address")
+                .id(geographicAddressRef.getFirst())
+                .href(geographicAddressRef.getSecond())));
 
         log.info("Posting Resource Specification to Offer Catalog for spectrum resource " + spcId + ".");
 
-        String rscJson = objectMapper.writeValueAsString(rsc);
         HttpEntity httpEntity = translatorCatalogInteractionService
-                .post(rscJson, "/resourceCatalogManagement/v2/resourceSpecification");
+                .post(objectMapper.writeValueAsString(resourceSpecificationCreate), "/resourceCatalogManagement/v2/resourceSpecification");
         ResourceSpecification rs =
                 objectMapper.readValue(EntityUtils.toString(httpEntity), ResourceSpecification.class);
 
@@ -602,8 +654,8 @@ public class TranslationService {
         return new Pair<>(rc, rs);
     }
 
-    public Pair<ResourceCandidate, ResourceSpecification> translateSpc(ResourceSpecificationCreate rsc, String spcId)
-            throws IOException, CatalogException {
+    public Pair<ResourceCandidate, ResourceSpecification> translateSpc(TranslatorRAPPInteractionService.RAPPWrapper rappWrapper, String spcId)
+            throws IOException, CatalogException, MalformattedElementException {
 
         boolean found = true;
         MappingInfo mappingInfo = null;
@@ -632,20 +684,26 @@ public class TranslationService {
                     log.info("Entry for " + spcId + " that should exists in DB, not found.");
                 }
 
-                return translateAndPostSpc(rsc, spcId);
+                return translateAndPostSpc(rappWrapper, spcId);
             }
         } else
-            return translateAndPostSpc(rsc, spcId);
+            return translateAndPostSpc(rappWrapper, spcId);
     }
 
-    public Pair<ResourceCandidate, ResourceSpecification> translateAndPostRad(ResourceSpecificationCreate rsc, String radId)
-            throws IOException, CatalogException {
+    public Pair<ResourceCandidate, ResourceSpecification> translateAndPostRad(TranslatorRAPPInteractionService.RAPPWrapper rappWrapper, String radId)
+            throws IOException, CatalogException, MalformattedElementException {
+
+        Pair<String, String> geographicAddressRef = getGeographicAddressOrCreate(rappWrapper.getGeographicAddressCreate());
+        ResourceSpecificationCreate resourceSpecificationCreate = rappWrapper.getResourceSpecificationCreate();
+        resourceSpecificationCreate.setFeature(Collections.singletonList(new Feature()
+                .name("Geographic Address")
+                .id(geographicAddressRef.getFirst())
+                .href(geographicAddressRef.getSecond())));
 
         log.info("Posting Resource Specification to Offer Catalog for radio resource " + radId + ".");
 
-        String rscJson = objectMapper.writeValueAsString(rsc);
         HttpEntity httpEntity = translatorCatalogInteractionService
-                .post(rscJson, "/resourceCatalogManagement/v2/resourceSpecification");
+                .post(objectMapper.writeValueAsString(resourceSpecificationCreate), "/resourceCatalogManagement/v2/resourceSpecification");
         ResourceSpecification rs =
                 objectMapper.readValue(EntityUtils.toString(httpEntity), ResourceSpecification.class);
 
@@ -668,8 +726,8 @@ public class TranslationService {
         return new Pair<>(rc, rs);
     }
 
-    public Pair<ResourceCandidate, ResourceSpecification> translateRad(ResourceSpecificationCreate rsc, String radId)
-            throws IOException, CatalogException {
+    public Pair<ResourceCandidate, ResourceSpecification> translateRad(TranslatorRAPPInteractionService.RAPPWrapper rappWrapper, String radId)
+            throws IOException, CatalogException, MalformattedElementException {
 
         boolean found = true;
         MappingInfo mappingInfo = null;
@@ -698,9 +756,9 @@ public class TranslationService {
                     log.info("Entry for " + radId + " that should exists in DB, not found.");
                 }
 
-                return translateAndPostRad(rsc, radId);
+                return translateAndPostRad(rappWrapper, radId);
             }
         } else
-            return translateAndPostRad(rsc, radId);
+            return translateAndPostRad(rappWrapper, radId);
     }
 }

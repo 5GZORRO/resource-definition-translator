@@ -8,13 +8,13 @@ import it.nextworks.sol006_tmf_translator.information_models.commons.Pair;
 import it.nextworks.sol006_tmf_translator.information_models.commons.enums.Kind;
 import it.nextworks.sol006_tmf_translator.interfaces.SpectrumTranslatorInterface;
 import it.nextworks.sol006_tmf_translator.sol006_tmf_translator.commons.exception.CatalogException;
+import it.nextworks.sol006_tmf_translator.sol006_tmf_translator.commons.exception.MalformattedElementException;
 import it.nextworks.sol006_tmf_translator.sol006_tmf_translator.commons.exception.MissingEntityOnSourceException;
 import it.nextworks.sol006_tmf_translator.sol006_tmf_translator.commons.exception.SourceException;
 import it.nextworks.sol006_tmf_translator.sol006_tmf_translator.services.TranslationService;
 import it.nextworks.sol006_tmf_translator.sol006_tmf_translator.services.TranslatorRAPPInteractionService;
 import it.nextworks.tmf_offering_catalog.information_models.resource.ResourceCandidate;
 import it.nextworks.tmf_offering_catalog.information_models.resource.ResourceSpecification;
-import it.nextworks.tmf_offering_catalog.information_models.resource.ResourceSpecificationCreate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -64,9 +64,9 @@ public class SpectrumTranslatorController implements SpectrumTranslatorInterface
 
         log.info("Received request to translate & post Spectrum Resource with Spectrum id " + spcId + ".");
 
-        ResourceSpecificationCreate rsc;
+        TranslatorRAPPInteractionService.RAPPWrapper rappWrapper;
         try {
-            rsc = translatorRAPPInteractionService.getFromRAPP(Kind.SPC, spcId);
+            rappWrapper = translatorRAPPInteractionService.getFromRAPP(Kind.SPC, spcId);
         } catch (SourceException | IOException e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new ErrMsg(e.getMessage()));
         } catch (MissingEntityOnSourceException e) {
@@ -77,9 +77,13 @@ public class SpectrumTranslatorController implements SpectrumTranslatorInterface
 
         Pair<ResourceCandidate, ResourceSpecification> translation;
         try {
-            translation = translationService.translateSpc(rsc, spcId);
+            translation = translationService.translateSpc(rappWrapper, spcId);
         } catch (IOException | CatalogException e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new ErrMsg(e.getMessage()));
+        } catch (MalformattedElementException e) {
+            String msg = e.getMessage();
+            log.info(msg);
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ErrMsg(msg));
         }
 
         return ResponseEntity.status(HttpStatus.CREATED).body(translation);
