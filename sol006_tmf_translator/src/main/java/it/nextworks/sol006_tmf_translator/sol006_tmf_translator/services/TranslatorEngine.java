@@ -209,9 +209,9 @@ public class TranslatorEngine {
         List<ResourceSpecCharacteristicValue> memoryRscvs = new ArrayList<>();
         Pair<Double, Double> minMaxMemory = getMinMaxDou(memories);
         memoryRscvs.add(new ResourceSpecCharacteristicValue()
-                .value(new Any().alias("min-virtual-memory").value(minMaxMemory.getFirst().toString())));
+                .value(new Any().alias("min-virtual-memory").value(minMaxMemory.getFirst().toString())).unitOfMeasure("GB"));
         memoryRscvs.add(new ResourceSpecCharacteristicValue()
-                .value(new Any().alias("max-virtual-memory").value(minMaxMemory.getSecond().toString())));
+                .value(new Any().alias("max-virtual-memory").value(minMaxMemory.getSecond().toString())).unitOfMeasure("GB"));
         memoryRequirements.setResourceSpecCharacteristicValue(memoryRscvs);
         resourceSpecCharacteristics.add(memoryRequirements);
 
@@ -222,9 +222,9 @@ public class TranslatorEngine {
         List<ResourceSpecCharacteristicValue> storageRscvs = new ArrayList<>();
         Pair<Integer, Integer> minMaxStorage = getMinMaxInt(storages);
         storageRscvs.add(new ResourceSpecCharacteristicValue()
-                .value(new Any().alias("min-storage").value(minMaxStorage.getFirst().toString())));
+                .value(new Any().alias("min-storage").value(minMaxStorage.getFirst().toString())).unitOfMeasure("GB"));
         storageRscvs.add(new ResourceSpecCharacteristicValue()
-                .value(new Any().alias("max-storage").value(minMaxStorage.getSecond().toString())));
+                .value(new Any().alias("max-storage").value(minMaxStorage.getSecond().toString())).unitOfMeasure("GB"));
         storageRequirements.setResourceSpecCharacteristicValue(storageRscvs);
         resourceSpecCharacteristics.add(storageRequirements);
 
@@ -1449,9 +1449,9 @@ public class TranslatorEngine {
                         .description("Virtual Memory lower bound and upper bound.");
         List<ServiceSpecCharacteristicValue> memorySscv = new ArrayList<>();
         memorySscv.add(new ServiceSpecCharacteristicValue()
-                .value(new Any().alias("min-virtual-memory").value(String.valueOf(minMemory))));
+                .value(new Any().alias("min-virtual-memory").value(String.valueOf(minMemory))).unitOfMeasure("GB"));
         memorySscv.add(new ServiceSpecCharacteristicValue()
-                .value(new Any().alias("max-virtual-memory").value(String.valueOf(maxMemory))));
+                .value(new Any().alias("max-virtual-memory").value(String.valueOf(maxMemory))).unitOfMeasure("GB"));
         memoryRequirements.setServiceSpecCharacteristicValue(memorySscv);
         serviceSpecCharacteristics.add(memoryRequirements);
 
@@ -1461,9 +1461,9 @@ public class TranslatorEngine {
                         .description("Storage lower bound and upper bound.");
         List<ServiceSpecCharacteristicValue> storageSscv = new ArrayList<>();
         storageSscv.add(new ServiceSpecCharacteristicValue()
-                .value(new Any().alias("min-storage").value(String.valueOf(minStorage))));
+                .value(new Any().alias("min-storage").value(String.valueOf(minStorage))).unitOfMeasure("GB"));
         storageSscv.add(new ServiceSpecCharacteristicValue()
-                .value(new Any().alias("max-storage").value(String.valueOf(maxStorage))));
+                .value(new Any().alias("max-storage").value(String.valueOf(maxStorage))).unitOfMeasure("GB"));
         storageRequirements.setServiceSpecCharacteristicValue(storageSscv);
         serviceSpecCharacteristics.add(storageRequirements);
 
