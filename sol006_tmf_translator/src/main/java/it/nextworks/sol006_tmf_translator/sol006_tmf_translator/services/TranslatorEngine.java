@@ -4,12 +4,15 @@ import it.nextworks.nfvmano.libs.common.enums.*;
 import it.nextworks.nfvmano.libs.descriptors.sol006.*;
 import it.nextworks.sol006_tmf_translator.information_models.commons.Pair;
 import it.nextworks.sol006_tmf_translator.information_models.commons.enums.Kind;
+import it.nextworks.sol006_tmf_translator.information_models.persistence.IdVsbNameMapping;
 import it.nextworks.sol006_tmf_translator.sol006_tmf_translator.commons.exception.MalformattedElementException;
+import it.nextworks.sol006_tmf_translator.sol006_tmf_translator.commons.exception.NotExistingEntityException;
 import it.nextworks.tmf_offering_catalog.information_models.common.*;
 import it.nextworks.tmf_offering_catalog.information_models.resource.*;
 import it.nextworks.tmf_offering_catalog.information_models.service.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.threeten.bp.Instant;
 import org.threeten.bp.OffsetDateTime;
@@ -24,6 +27,13 @@ import java.util.stream.Collectors;
 public class TranslatorEngine {
 
     private static final Logger log = LoggerFactory.getLogger(TranslatorEngine.class);
+
+    private final IdVsbNameMappingService idVsbNameMappingService;
+
+    @Autowired
+    public TranslatorEngine(IdVsbNameMappingService idVsbNameMappingService) {
+        this.idVsbNameMappingService = idVsbNameMappingService;
+    }
 
     private Pair<Integer, Integer> getMinMaxInt(ArrayList<Integer> arr) {
         Integer min = arr.get(0);
@@ -192,7 +202,8 @@ public class TranslatorEngine {
         return resourceSpecCharacteristics;
     }
 
-    public ResourceSpecificationCreate buildVnfdResourceSpecification(Vnfd vnfd, String functionType) throws MalformattedElementException {
+    public ResourceSpecificationCreate buildVnfdResourceSpecification(Vnfd vnfd, String functionType)
+            throws MalformattedElementException, NotExistingEntityException {
 
         String vnfdId = vnfd.getId();
         log.info("Translating vnfd " + vnfdId + ".");
@@ -212,8 +223,15 @@ public class TranslatorEngine {
                 .name("vnfdId")
                 .resourceSpecCharacteristicValue(Collections.singletonList(new ResourceSpecCharacteristicValue()
                         .value(new Any().alias("vnfdId").value(vnfdId))));
-
         resourceSpecCharacteristics.add(rscVnfdId);
+
+        IdVsbNameMapping idVsbNameMapping = idVsbNameMappingService.getById(vnfdId);
+        ResourceSpecCharacteristic rscVsbName = new ResourceSpecCharacteristic()
+                .description("Name of the Vertical Service Blueprint.")
+                .name("vsbName")
+                .resourceSpecCharacteristicValue(Collections.singletonList(new ResourceSpecCharacteristicValue()
+                        .value(new Any().alias("vsbName").value(idVsbNameMapping.getVsbName()))));
+        resourceSpecCharacteristics.add(rscVsbName);
 
         resourceSpecCharacteristics.addAll(computeVnfRequirements(vnfd));
 
@@ -834,7 +852,8 @@ public class TranslatorEngine {
                                                                    List<ResourceSpecification> vnfResourceSpecifications,
                                                                    List<ResourceSpecification> pnfResourceSpecifications,
                                                                    List<ServiceSpecification> nsServiceSpecifications,
-                                                                   String serviceType) throws MalformattedElementException {
+                                                                   String serviceType)
+            throws MalformattedElementException, NotExistingEntityException {
 
         String nsdId = nsd.getId();
         log.info("Translating nsd " + nsdId + ".");
@@ -883,8 +902,15 @@ public class TranslatorEngine {
                 .name("nsdId")
                 .serviceSpecCharacteristicValue(Collections.singletonList(new ServiceSpecCharacteristicValue()
                         .value(new Any().alias("nsdId").value(nsdId))));
-
         serviceSpecCharacteristics.add(sscNsdId);
+
+        IdVsbNameMapping idVsbNameMapping = idVsbNameMappingService.getById(nsdId);
+        ServiceSpecCharacteristic rscVsbName = new ServiceSpecCharacteristic()
+                .description("Name of the Vertical Service Blueprint.")
+                .name("vsbName")
+                .serviceSpecCharacteristicValue(Collections.singletonList(new ServiceSpecCharacteristicValue()
+                        .value(new Any().alias("vsbName").value(idVsbNameMapping.getVsbName()))));
+        serviceSpecCharacteristics.add(rscVsbName);
 
         serviceSpecCharacteristics.addAll(computeNsRequirements(vnfResourceSpecifications, nsServiceSpecifications));
 

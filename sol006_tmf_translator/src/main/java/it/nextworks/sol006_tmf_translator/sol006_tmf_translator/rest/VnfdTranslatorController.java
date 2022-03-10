@@ -104,6 +104,8 @@ public class VnfdTranslatorController implements VnfdTranslatorInterface {
             String msg = e.getMessage();
             log.error(msg);
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ErrMsg(msg));
+        } catch (NotExistingEntityException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ErrMsg(e.getMessage()));
         }
 
         try {
@@ -190,6 +192,8 @@ public class VnfdTranslatorController implements VnfdTranslatorInterface {
             String msg = e.getMessage();
             log.error(msg);
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ErrMsg(msg));
+        } catch (NotExistingEntityException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ErrMsg(e.getMessage()));
         }
 
         return ResponseEntity.status(HttpStatus.CREATED).body(translation);

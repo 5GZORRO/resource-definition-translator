@@ -100,7 +100,7 @@ public class NsdTranslatorController implements NsdTranslatorInterface {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new ErrMsg(msg));
         } catch (CatalogException | SourceException e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new ErrMsg(e.getMessage()));
-        } catch (MissingEntityOnCatalogException | MissingEntityOnSourceException e) {
+        } catch (MissingEntityOnCatalogException | MissingEntityOnSourceException | NotExistingEntityException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ErrMsg(e.getMessage()));
         } catch (MalformattedElementException e) {
             String msg = e.getMessage();
@@ -188,7 +188,7 @@ public class NsdTranslatorController implements NsdTranslatorInterface {
             translation = translationService.translateNsd(nsd, serviceType);
         } catch (IOException | CatalogException | SourceException e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new ErrMsg(e.getMessage()));
-        } catch (MissingEntityOnSourceException | MissingEntityOnCatalogException e) {
+        } catch (MissingEntityOnSourceException | MissingEntityOnCatalogException | NotExistingEntityException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ErrMsg(e.getMessage()));
         } catch (MalformattedElementException e) {
             String msg = e.getMessage();

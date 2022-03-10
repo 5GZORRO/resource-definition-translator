@@ -146,7 +146,7 @@ public class TranslationService {
     }
 
     public Pair<ResourceCandidate, ResourceSpecification> translateAndPostVnfd(Vnfd vnfd, String functionType)
-            throws IOException, CatalogException, MalformattedElementException {
+            throws IOException, CatalogException, MalformattedElementException, NotExistingEntityException {
 
         String vnfdId = vnfd.getId();
         ResourceSpecificationCreate rsc = translatorEngine.buildVnfdResourceSpecification(vnfd, functionType);
@@ -179,7 +179,7 @@ public class TranslationService {
     }
 
     public Pair<ResourceCandidate, ResourceSpecification> translateVnfd(Vnfd vnfd, String functionType)
-            throws IOException, CatalogException, MalformattedElementException {
+            throws IOException, CatalogException, MalformattedElementException, NotExistingEntityException {
 
         String vnfdId = vnfd.getId();
 
@@ -292,7 +292,7 @@ public class TranslationService {
 
     public ResourceSpecification getFromSourceAndTranslateResource(Kind kind, String resource)
             throws MissingEntityOnSourceException, SourceException, IOException,
-            CatalogException, MalformattedElementException {
+            CatalogException, MalformattedElementException, NotExistingEntityException {
 
         String infoId = translatorDescSourceInteractionService.getInfoIdFromDescriptorId(kind, resource);
         HttpEntity httpEntity = translatorDescSourceInteractionService.getFromSource(kind, infoId);
@@ -328,7 +328,7 @@ public class TranslationService {
 
     public ServiceSpecification getFromSourceAndTranslateService(String service)
             throws MissingEntityOnSourceException, SourceException, IOException,
-            CatalogException, MissingEntityOnCatalogException, MalformattedElementException {
+            CatalogException, MissingEntityOnCatalogException, MalformattedElementException, NotExistingEntityException {
 
         String infoId = translatorDescSourceInteractionService.getInfoIdFromDescriptorId(Kind.NS, service);
         HttpEntity httpEntity = translatorDescSourceInteractionService.getFromSource(Kind.NS, infoId);
@@ -347,7 +347,7 @@ public class TranslationService {
 
     public List<ResourceSpecification> areResourcesPresent(Kind kind, List<String> resources)
             throws IOException, CatalogException, MissingEntityOnSourceException,
-            SourceException, MalformattedElementException {
+            SourceException, MalformattedElementException, NotExistingEntityException {
 
         List<ResourceSpecification> resourceSpecifications = new ArrayList<>();
         for(String resource : resources) {
@@ -418,7 +418,7 @@ public class TranslationService {
 
     public List<ServiceSpecification> areServicesPresent(List<String> nsdIds)
             throws CatalogException, IOException, MissingEntityOnCatalogException,
-            SourceException, MissingEntityOnSourceException, MalformattedElementException {
+            SourceException, MissingEntityOnSourceException, MalformattedElementException, NotExistingEntityException {
 
         List<ServiceSpecification> serviceSpecifications = new ArrayList<>();
         for(String nsdId : nsdIds) {
@@ -486,7 +486,7 @@ public class TranslationService {
 
     public Pair<ServiceCandidate, ServiceSpecification> translateAndPostNsd(Nsd nsd, String serviceType)
             throws CatalogException, IOException, MissingEntityOnCatalogException,
-            MissingEntityOnSourceException, SourceException, MalformattedElementException {
+            MissingEntityOnSourceException, SourceException, MalformattedElementException, NotExistingEntityException {
 
         List<String> vnfds = nsd.getVnfdId();
         List<ResourceSpecification> vnfResourceSpecifications = new ArrayList<>();
@@ -536,7 +536,7 @@ public class TranslationService {
 
     public Pair<ServiceCandidate, ServiceSpecification> translateNsd(Nsd nsd, String serviceType)
             throws IOException, CatalogException, MissingEntityOnCatalogException,
-            MissingEntityOnSourceException, SourceException, MalformattedElementException {
+            MissingEntityOnSourceException, SourceException, MalformattedElementException, NotExistingEntityException {
 
         String nsdId = nsd.getId();
 
