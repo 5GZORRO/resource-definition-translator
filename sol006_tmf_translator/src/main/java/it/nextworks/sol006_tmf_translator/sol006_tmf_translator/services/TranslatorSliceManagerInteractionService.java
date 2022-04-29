@@ -300,10 +300,8 @@ public class TranslatorSliceManagerInteractionService {
     @Autowired
     public TranslatorSliceManagerInteractionService(ObjectMapper objectMapper) { this.objectMapper = objectMapper; }
 
-    public SliceType getSliceType(String sliceTypeId)
+    private static String getFromSliceManager(String request)
             throws SourceException, MissingEntityOnSourceException, IOException {
-
-        String request = protocol + sliceManagerURL + "/api/v1.0/slic3_type/" + sliceTypeId;
         CloseableHttpClient httpClient = HttpClients.createDefault();
 
         HttpGet httpGet = new HttpGet(request);
@@ -314,7 +312,7 @@ public class TranslatorSliceManagerInteractionService {
         try {
             response = httpClient.execute(httpGet);
         } catch(IOException e) {
-            String msg = "Radio Controller Unreachable.";
+            String msg = "Slice Manager Unreachable.";
             log.error(msg);
             throw new SourceException(msg);
         }
@@ -323,11 +321,23 @@ public class TranslatorSliceManagerInteractionService {
         if(statusCode == 404)
             throw new MissingEntityOnSourceException();
         else if(statusCode != 200) {
-            String msg = "Radio Controller GET request failed, status code: " + statusCode + ".";
+            String msg = "Slice Manager GET request failed, status code: " + statusCode + ".";
             log.error(msg);
             throw new SourceException(msg);
         }
 
-        return objectMapper.readValue(EntityUtils.toString(response.getEntity()), SliceType.class);
+        return EntityUtils.toString(response.getEntity());
+    }
+
+    public SliceType getSliceType(String sliceTypeId)
+            throws SourceException, MissingEntityOnSourceException, IOException {
+        String request = protocol + sliceManagerURL + "/api/v1.0/slic3_type/" + sliceTypeId;
+        return objectMapper.readValue(getFromSliceManager(request), SliceType.class);
+    }
+
+    public SliceTypeChunks getSliceBlueprint(String sliceTypeId)
+            throws SourceException, IOException, MissingEntityOnSourceException {
+        String request = protocol + sliceManagerURL + "/api/v1.0/slic3_type/" + sliceTypeId + "/slice_blueprint";
+        return objectMapper.readValue(getFromSliceManager(request), SliceTypeChunks.class);
     }
 }
