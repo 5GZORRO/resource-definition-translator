@@ -2,14 +2,38 @@ package it.nextworks.sol006_tmf_translator.sol006_tmf_translator.services;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonSubTypes;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import it.nextworks.sol006_tmf_translator.sol006_tmf_translator.commons.exception.MissingEntityOnSourceException;
+import it.nextworks.sol006_tmf_translator.sol006_tmf_translator.commons.exception.SourceException;
+import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
+import org.apache.http.util.EntityUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import java.io.IOException;
+import java.util.HashMap;
 import java.util.List;
 
 @Service
 public class TranslatorSliceManagerInteractionService {
 
-    public static class Attribute {
+    @JsonTypeInfo(
+            use = JsonTypeInfo.Id.NAME,
+            property = "attribute_type"
+    )
+    @JsonSubTypes({
+            @JsonSubTypes.Type(value = StringAttribute.class, name = "string"),
+            @JsonSubTypes.Type(value = DictAttribute.class, name = "dict")
+    })
+    public static abstract class Attribute {
 
         @JsonProperty("attribute_name")
         private String attributeName;
@@ -17,30 +41,34 @@ public class TranslatorSliceManagerInteractionService {
         @JsonProperty("attribute_type")
         private String attributeType;
 
-        @JsonProperty("attribute_value")
-        private String attributeValue;
-
         @JsonProperty("attribute_description")
         private String attributeDescription;
-
-        @JsonCreator
-        public Attribute(@JsonProperty("attribute_name") String attributeName,
-                         @JsonProperty("attribute_type") String attributeType,
-                         @JsonProperty("attribute_value") String attributeValue,
-                         @JsonProperty("attribute_description") String attributeDescription) {
-            this.attributeName        = attributeName;
-            this.attributeType        = attributeType;
-            this.attributeValue       = attributeValue;
-            this.attributeDescription = attributeDescription;
-        }
 
         public String getAttributeName() { return attributeName; }
 
         public String getAttributeType() { return attributeType; }
 
-        public String getAttributeValue() { return attributeValue; }
-
         public String getAttributeDescription() { return attributeDescription; }
+    }
+
+    public static class StringAttribute extends Attribute {
+
+        @JsonProperty("attribute_value")
+        private String attributeValue;
+
+        public StringAttribute(){}
+
+        public String getAttributeValue() { return attributeValue; }
+    }
+
+    public static class DictAttribute extends Attribute {
+
+        @JsonProperty("attribute_value")
+        private HashMap<String, String> attributeValue;
+
+        public DictAttribute(){}
+
+        public HashMap<String, String> getAttributeValue() { return attributeValue; }
     }
 
     public static class ConfigurableParameter {
@@ -54,14 +82,7 @@ public class TranslatorSliceManagerInteractionService {
         @JsonProperty("parameter_description")
         private String parameterDescription;
 
-        @JsonCreator
-        public ConfigurableParameter(@JsonProperty("parameter_name") String parameterName,
-                                     @JsonProperty("parameter_type") String parameterType,
-                                     @JsonProperty("parameter_description") String parameterDescription) {
-            this.parameterName        = parameterName;
-            this.parameterType        = parameterType;
-            this.parameterDescription = parameterDescription;
-        }
+        public ConfigurableParameter(){}
 
         public String getParameterName() { return parameterName; }
 
@@ -99,26 +120,25 @@ public class TranslatorSliceManagerInteractionService {
         @JsonProperty("status")
         private String status;
 
-        @JsonCreator
-        public SliceType(@JsonProperty("user_id") String userId,
-                         @JsonProperty("slic3_temp_id") String sliceTempId,
-                         @JsonProperty("name") String name,
-                         @JsonProperty("version") String version,
-                         @JsonProperty("description") String description,
-                         @JsonProperty("attributes") List<Attribute> attributes,
-                         @JsonProperty("configurable_parameters") List<ConfigurableParameter> configurableParameters,
-                         @JsonProperty("id") String id,
-                         @JsonProperty("status") String status) {
-            this.userId                 = userId;
-            this.sliceTempId            = sliceTempId;
-            this.name                   = name;
-            this.version                = version;
-            this.description            = description;
-            this.attributes             = attributes;
-            this.configurableParameters = configurableParameters;
-            this.id                     = id;
-            this.status                 = status;
-        }
+        public SliceType(){}
+
+        public String getUserId() { return userId; }
+
+        public String getSliceTempId() { return sliceTempId; }
+
+        public String getName() { return name; }
+
+        public String getVersion() { return version; }
+
+        public String getDescription() { return description; }
+
+        public List<Attribute> getAttributes() { return attributes; }
+
+        public List<ConfigurableParameter> getConfigurableParameters() { return configurableParameters; }
+
+        public String getId() { return id; }
+
+        public String getStatus() { return status; }
     }
 
     public static class ComputeChunk {
@@ -126,10 +146,7 @@ public class TranslatorSliceManagerInteractionService {
         @JsonProperty("compute_id")
         private String computeId;
 
-        @JsonCreator
-        public ComputeChunk(@JsonProperty("compute_id") String computeId) {
-            this.computeId = computeId;
-        }
+        public ComputeChunk(){}
 
         public String getComputeId() { return computeId; }
     }
@@ -142,12 +159,7 @@ public class TranslatorSliceManagerInteractionService {
         @JsonProperty("role")
         private String role;
 
-        @JsonCreator
-        public NetworkChunk(@JsonProperty("physical_network_id") String physicalNetworkId,
-                            @JsonProperty("role") String role) {
-            this.physicalNetworkId = physicalNetworkId;
-            this.role              = role;
-        }
+        public NetworkChunk(){}
 
         public String getPhysicalNetworkId() { return physicalNetworkId; }
 
@@ -168,16 +180,7 @@ public class TranslatorSliceManagerInteractionService {
         @JsonProperty("dstPhyId")
         private String dstPhyId;
 
-        @JsonCreator
-        public SelectedLink(@JsonProperty("id") String id,
-                            @JsonProperty("key") String key,
-                            @JsonProperty("srcPhyId") String srcPhyId,
-                            @JsonProperty("dstPhyId") String dstPhyId) {
-            this.id       = id;
-            this.key      = key;
-            this.srcPhyId = srcPhyId;
-            this.dstPhyId = dstPhyId;
-        }
+        public SelectedLink(){}
 
         public String getId() { return id; }
 
@@ -207,18 +210,7 @@ public class TranslatorSliceManagerInteractionService {
         @JsonProperty("box_name")
         private String boxName;
 
-        @JsonCreator
-        public SelectedPhy(@JsonProperty("id") String id,
-                           @JsonProperty("name") String name,
-                           @JsonProperty("type") String type,
-                           @JsonProperty("config") Config config,
-                           @JsonProperty("box_name") String boxName) {
-            this.id      = id;
-            this.name    = name;
-            this.type    = type;
-            this.config  = config;
-            this.boxName = boxName;
-        }
+        public SelectedPhy(){}
 
         public String getId() { return id; }
 
@@ -239,12 +231,7 @@ public class TranslatorSliceManagerInteractionService {
         @JsonProperty("selectedPhys")
         private List<SelectedPhy> selectedPhys;
 
-        @JsonCreator
-        public ChunkTopology(@JsonProperty("selectedLinks") List<SelectedLink> selectedLinks,
-                             @JsonProperty("selectedPhys") List<SelectedPhy> selectedPhys) {
-            this.selectedLinks = selectedLinks;
-            this.selectedPhys  = selectedPhys;
-        }
+        public ChunkTopology(){}
 
         public List<SelectedLink> getSelectedLinks() { return selectedLinks; }
 
@@ -259,12 +246,7 @@ public class TranslatorSliceManagerInteractionService {
         @JsonProperty("chunk_topology")
         private ChunkTopology chunkTopology;
 
-        @JsonCreator
-        public RadioChunk(@JsonProperty("ran_infra_id") String ranInfraId,
-                          @JsonProperty("chunk_topology") ChunkTopology chunkTopology) {
-            this.ranInfraId    = ranInfraId;
-            this.chunkTopology = chunkTopology;
-        }
+        public RadioChunk(){}
 
         public String getRanInfraId() { return ranInfraId; }
 
@@ -282,14 +264,13 @@ public class TranslatorSliceManagerInteractionService {
         @JsonProperty("radio_chunk")
         private List<RadioChunk> radioChunks;
 
-        @JsonCreator
-        public SliceBlueprint(@JsonProperty("compute_chunk") List<ComputeChunk> computeChunks,
-                              @JsonProperty("network_chunk") List<NetworkChunk> networkChunks,
-                              @JsonProperty("radio_chunk") List<RadioChunk> radioChunks) {
-            this.computeChunks = computeChunks;
-            this.networkChunks = networkChunks;
-            this.radioChunks   = radioChunks;
-        }
+        public SliceBlueprint(){}
+
+        public List<ComputeChunk> getComputeChunks() { return computeChunks; }
+
+        public List<NetworkChunk> getNetworkChunks() { return networkChunks; }
+
+        public List<RadioChunk> getRadioChunks() { return radioChunks; }
     }
 
     public static class SliceTypeChunks {
@@ -300,15 +281,53 @@ public class TranslatorSliceManagerInteractionService {
         @JsonProperty("slice_blueprint")
         private SliceBlueprint sliceBlueprint;
 
-        @JsonCreator
-        public SliceTypeChunks(@JsonProperty("id") String id,
-                               @JsonProperty("slice_blueprint") SliceBlueprint sliceBlueprint) {
-            this.id             = id;
-            this.sliceBlueprint = sliceBlueprint;
-        }
+        public SliceTypeChunks(){}
 
         public String getId() { return id; }
 
         public SliceBlueprint getSliceBlueprint() { return sliceBlueprint; }
+    }
+
+    private static final Logger log = LoggerFactory.getLogger(TranslatorSliceManagerInteractionService.class);
+
+    private final ObjectMapper objectMapper;
+
+    private static final String protocol = "http://";
+
+    @Value("${slice_manager_url}")
+    private String sliceManagerURL;
+
+    @Autowired
+    public TranslatorSliceManagerInteractionService(ObjectMapper objectMapper) { this.objectMapper = objectMapper; }
+
+    public SliceType getSliceType(String sliceTypeId)
+            throws SourceException, MissingEntityOnSourceException, IOException {
+
+        String request = protocol + sliceManagerURL + "/api/v1.0/slic3_type/" + sliceTypeId;
+        CloseableHttpClient httpClient = HttpClients.createDefault();
+
+        HttpGet httpGet = new HttpGet(request);
+        httpGet.setHeader("Accept", "application/json");
+        httpGet.setHeader("Content-type", "application/json");
+
+        CloseableHttpResponse response;
+        try {
+            response = httpClient.execute(httpGet);
+        } catch(IOException e) {
+            String msg = "Radio Controller Unreachable.";
+            log.error(msg);
+            throw new SourceException(msg);
+        }
+
+        int statusCode = response.getStatusLine().getStatusCode();
+        if(statusCode == 404)
+            throw new MissingEntityOnSourceException();
+        else if(statusCode != 200) {
+            String msg = "Radio Controller GET request failed, status code: " + statusCode + ".";
+            log.error(msg);
+            throw new SourceException(msg);
+        }
+
+        return objectMapper.readValue(EntityUtils.toString(response.getEntity()), SliceType.class);
     }
 }
