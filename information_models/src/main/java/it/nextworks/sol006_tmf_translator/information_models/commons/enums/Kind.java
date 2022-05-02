@@ -6,5 +6,7 @@ public enum Kind {
     NS,
     VS,
     SPC,
-    RAD
+    RAD,
+    EDGE,
+    CLOUD
 }
