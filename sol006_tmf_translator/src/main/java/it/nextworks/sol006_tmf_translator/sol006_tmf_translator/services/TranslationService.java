@@ -79,6 +79,8 @@ public class TranslationService {
             getCategoryOrCreateIfNotExists(Kind.VS, "/serviceCatalogManagement/v4/serviceCategory/filter");
             getCategoryOrCreateIfNotExists(Kind.SPC, "/resourceCatalogManagement/v2/resourceCategory/filter");
             getCategoryOrCreateIfNotExists(Kind.RAD, "/resourceCatalogManagement/v2/resourceCategory/filter");
+            getCategoryOrCreateIfNotExists(Kind.EDGE, "/resourceCatalogManagement/v2/resourceCategory/filter");
+            getCategoryOrCreateIfNotExists(Kind.CLOUD, "/resourceCatalogManagement/v2/resourceCategory/filter");
         } catch (CatalogException | IOException e) {
             log.error(e.getMessage());
             SpringApplication.exit(applicationContext, () -> -1);
@@ -96,6 +98,8 @@ public class TranslationService {
                 case PNF:
                 case SPC:
                 case RAD:
+                case EDGE:
+                case CLOUD:
                     ResourceCategory rc = objectMapper.readValue(EntityUtils.toString(en), ResourceCategory.class);
                     return new Pair<>(rc.getHref(), rc.getId());
 
@@ -115,6 +119,8 @@ public class TranslationService {
                 case PNF:
                 case SPC:
                 case RAD:
+                case EDGE:
+                case CLOUD:
                     ResourceCategoryCreate rcc = new ResourceCategoryCreate()
                             .name(name)
                             .lastUpdate(OffsetDateTime.ofInstant(Instant.now(), ZoneId.of("UTC")));
@@ -760,5 +766,40 @@ public class TranslationService {
             }
         } else
             return translateAndPostRad(rappWrapper, radId);
+    }
+
+    public Pair<ResourceCandidate, ResourceSpecification>
+    translateAndPostEdge(TranslatorSliceManagerInteractionService.SliceType sliceType,
+                         TranslatorSliceManagerInteractionService.SliceTypeChunks sliceTypeBlueprint)
+            throws NotExistingEntityException, IOException, CatalogException {
+
+        String edgeId = sliceType.getId();
+        ResourceSpecificationCreate rsc = translatorEngine.buildEdgeResourceSpecification(sliceType, sliceTypeBlueprint);
+
+        log.info("Posting Resource Specification to Offer Catalog for edge {}.", edgeId);
+
+        String rscJson = objectMapper.writeValueAsString(rsc);
+        HttpEntity httpEntity = translatorCatalogInteractionService
+                .post(rscJson, "/resourceCatalogManagement/v2/resourceSpecification");
+        ResourceSpecification rs =
+                objectMapper.readValue(EntityUtils.toString(httpEntity), ResourceSpecification.class);
+
+        Pair<String, String> pair = getCategoryOrCreateIfNotExists(Kind.EDGE,
+                "/resourceCatalogManagement/v2/resourceCategory/filter");
+
+        ResourceCandidateCreate rcc = translatorEngine.buildEdgeResourceCandidate(sliceType.getName(), pair, rs);
+
+        log.info("Posting Resource Candidate to Offer Catalog for edge {}.", edgeId);
+
+        String rccJson = objectMapper.writeValueAsString(rcc);
+        httpEntity =
+                translatorCatalogInteractionService.post(rccJson, "/resourceCatalogManagement/v2/resourceCandidate");
+        ResourceCandidate rc = objectMapper.readValue(EntityUtils.toString(httpEntity), ResourceCandidate.class);
+
+        mappingInfoService.save(new MappingInfo(edgeId, rc.getId(), rs.getId()));
+
+        log.info("Edge {} translated & posted.", edgeId);
+
+        return new Pair<>(rc, rs);
     }
 }
