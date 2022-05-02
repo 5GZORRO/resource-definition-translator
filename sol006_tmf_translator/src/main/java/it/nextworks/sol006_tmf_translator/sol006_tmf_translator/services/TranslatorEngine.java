@@ -974,4 +974,97 @@ public class TranslatorEngine {
                         .href(rs.getHref())
                         .name(name));
     }
+
+    public ResourceSpecificationCreate
+    buildEdgeResourceSpecification(TranslatorSliceManagerInteractionService.SliceType sliceType,
+                                   TranslatorSliceManagerInteractionService.SliceTypeChunks sliceTypeBlueprint)
+            throws NotExistingEntityException {
+
+        String edgeId = sliceType.getId();
+        log.info("Translating edge {}.", edgeId);
+
+        String edgeName = sliceType.getName();
+        TranslatorSliceManagerInteractionService.SliceBlueprint sliceBlueprint = sliceTypeBlueprint.getSliceBlueprint();
+
+        ResourceSpecificationCreate rsc = new ResourceSpecificationCreate()
+                .description(edgeName)
+                .name(edgeName)
+                .lastUpdate(OffsetDateTime.ofInstant(Instant.now(), ZoneId.of("UTC")));
+
+        List<ResourceSpecCharacteristic> resourceSpecCharacteristics = new ArrayList<>();
+
+        ResourceSpecCharacteristic rscEdgeId = new ResourceSpecCharacteristic()
+                .description("ID of the Edge Resource")
+                .name("Edge ID")
+                .resourceSpecCharacteristicValue(Collections.singletonList(new ResourceSpecCharacteristicValue()
+                        .value(new Any().alias("Edge ID").value(edgeId))));
+        resourceSpecCharacteristics.add(rscEdgeId);
+
+        IdVsbNameMapping idVsbNameMapping = idVsbNameMappingService.getById(edgeId);
+        ResourceSpecCharacteristic rscVsbName = new ResourceSpecCharacteristic()
+                .description("Name of the Vertical Service Blueprint.")
+                .name("vsbName")
+                .resourceSpecCharacteristicValue(Collections.singletonList(new ResourceSpecCharacteristicValue()
+                        .value(new Any().alias("vsbName").value(idVsbNameMapping.getVsbName()))));
+        resourceSpecCharacteristics.add(rscVsbName);
+
+        TranslatorSliceManagerInteractionService.ComputeChunk computeChunk = sliceBlueprint.getComputeChunks().get(0);
+        TranslatorSliceManagerInteractionService.ComputeChunkRequirements computeChunkRequirements =
+                computeChunk.getComputeChunkRequirements();
+
+        ResourceSpecCharacteristic rscCpu = new ResourceSpecCharacteristic()
+                .description("Edge CPU Config")
+                .name("cpu")
+                .resourceSpecCharacteristicValue(Collections.singletonList(new ResourceSpecCharacteristicValue()
+                .value(new Any().alias("cpu").value(computeChunkRequirements.getCpus().getRequired()))));
+        resourceSpecCharacteristics.add(rscCpu);
+
+        TranslatorSliceManagerInteractionService.RequirementsValue ramRequirements = computeChunkRequirements.getRam();
+        ResourceSpecCharacteristic rscRam = new ResourceSpecCharacteristic()
+                .description("Edge RAM Config")
+                .name("memory")
+                .resourceSpecCharacteristicValue(Collections.singletonList(new ResourceSpecCharacteristicValue()
+                        .value(new Any().alias("memory").value(ramRequirements.getRequired()))
+                        .unitOfMeasure(ramRequirements.getUnits())));
+        resourceSpecCharacteristics.add(rscRam);
+
+        TranslatorSliceManagerInteractionService.RequirementsValue storageRequirements =
+                computeChunkRequirements.getStorage();
+        ResourceSpecCharacteristic rscStorage = new ResourceSpecCharacteristic()
+                .description("Edge Storage Config")
+                .name("storage")
+                .resourceSpecCharacteristicValue(Collections.singletonList(new ResourceSpecCharacteristicValue()
+                        .value(new Any().alias("storage").value(storageRequirements.getRequired()))
+                        .unitOfMeasure(storageRequirements.getUnits())));
+        resourceSpecCharacteristics.add(rscStorage);
+
+        TranslatorSliceManagerInteractionService.RequirementsValue bandwidthNetworkChunkRequirements =
+                sliceBlueprint.getNetworkChunks().get(0).getNetworkChunkRequirements().getBandwidth();
+        ResourceSpecCharacteristic rscBandwidth = new ResourceSpecCharacteristic()
+                .description("Bandwidth")
+                .name("bandwidth")
+                .resourceSpecCharacteristicValue(Collections.singletonList(new ResourceSpecCharacteristicValue()
+                        .value(new Any().alias("bandwidth").value(bandwidthNetworkChunkRequirements.getRequired()))
+                        .unitOfMeasure(bandwidthNetworkChunkRequirements.getUnits())));
+        resourceSpecCharacteristics.add(rscBandwidth);
+
+        rsc.setResourceSpecCharacteristic(resourceSpecCharacteristics);
+
+        return rsc;
+    }
+
+    public ResourceCandidateCreate
+    buildEdgeResourceCandidate(String productName, Pair<String, String> pair, ResourceSpecification rs) {
+        return new ResourceCandidateCreate()
+                .name(productName)
+                .lastUpdate(OffsetDateTime.ofInstant(Instant.now(), ZoneId.of("UTC")))
+                .category(Collections.singletonList(new ResourceCategoryRef()
+                        .name(Kind.EDGE.name())
+                        .href(pair.getFirst())
+                        .id(pair.getSecond())))
+                .resourceSpecification(new ResourceSpecificationRef()
+                        .id(rs.getId())
+                        .href(rs.getHref())
+                        .name(rs.getName()));
+    }
 }
