@@ -141,14 +141,64 @@ public class TranslatorSliceManagerInteractionService {
         public String getStatus() { return status; }
     }
 
+    public static class RequirementsValue {
+
+        @JsonProperty("required")
+        private String required;
+
+        @JsonProperty("units")
+        private String units;
+
+        public RequirementsValue(){}
+
+        public String getRequired() { return required; }
+
+        public String getUnits() { return units; }
+    }
+
+    public static class ComputeChunkRequirements {
+
+        @JsonProperty("cpus")
+        private RequirementsValue cpus;
+
+        @JsonProperty("ram")
+        private RequirementsValue ram;
+
+        @JsonProperty("storage")
+        private RequirementsValue storage;
+
+        public ComputeChunkRequirements(){}
+
+        public RequirementsValue getCpus() { return cpus; }
+
+        public RequirementsValue getRam() { return ram; }
+
+        public RequirementsValue getStorage() { return storage; }
+    }
+
     public static class ComputeChunk {
 
         @JsonProperty("compute_id")
         private String computeId;
 
+        @JsonProperty("requirements")
+        private ComputeChunkRequirements computeChunkRequirements;
+
         public ComputeChunk(){}
 
         public String getComputeId() { return computeId; }
+
+        public ComputeChunkRequirements getComputeChunkRequirements() { return computeChunkRequirements; }
+    }
+
+    public static class NetworkChunkRequirements {
+
+        @JsonProperty("bandwidth")
+        private RequirementsValue bandwidth;
+
+        public NetworkChunkRequirements(){}
+
+        public RequirementsValue getBandwidth() { return bandwidth; }
     }
 
     public static class NetworkChunk {
@@ -159,11 +209,21 @@ public class TranslatorSliceManagerInteractionService {
         @JsonProperty("role")
         private String role;
 
+        @JsonProperty("tag")
+        private String tag;
+
+        @JsonProperty("requirements")
+        private NetworkChunkRequirements networkChunkRequirements;
+
         public NetworkChunk(){}
 
         public String getPhysicalNetworkId() { return physicalNetworkId; }
 
         public String getRole() { return role; }
+
+        public String getTag() { return tag; }
+
+        public NetworkChunkRequirements getNetworkChunkRequirements() { return networkChunkRequirements; }
     }
 
     public static class SelectedLink {
@@ -191,7 +251,65 @@ public class TranslatorSliceManagerInteractionService {
         public String getDstPhyId() { return dstPhyId; }
     }
 
-    public static class Config {}
+    public static class Config {
+
+        @JsonProperty("selectedRFPort")
+        private String selectedRFPort;
+
+        @JsonProperty("cellId")
+        private String cellId;
+
+        @JsonProperty("physicalCellId")
+        private String physicalCellId;
+
+        @JsonProperty("type")
+        private String type;
+
+        @JsonProperty("earfcnDl")
+        private String earfcnDl;
+
+        @JsonProperty("tac")
+        private String tac;
+
+        @JsonProperty("rootSeqIndex")
+        private String rootSeqIndex;
+
+        @JsonProperty("bandwidth")
+        private String bandwidth;
+
+        @JsonProperty("tddConfig")
+        private String tddConfig;
+
+        @JsonProperty("cellGain")
+        private String cellGain;
+
+        @JsonProperty("cellNSARelationship")
+        private List<String> cellNSARelationship;
+
+        public Config() {}
+
+        public String getSelectedRFPort() { return selectedRFPort; }
+
+        public String getCellId() { return cellId; }
+
+        public String getPhysicalCellId() { return physicalCellId; }
+
+        public String getType() { return type; }
+
+        public String getEarfcnDl() { return earfcnDl; }
+
+        public String getTac() { return tac; }
+
+        public String getRootSeqIndex() { return rootSeqIndex; }
+
+        public String getBandwidth() { return bandwidth; }
+
+        public String getTddConfig() { return tddConfig; }
+
+        public String getCellGain() { return cellGain; }
+
+        public List<String> getCellNSARelationship() { return cellNSARelationship; }
+    }
 
     public static class SelectedPhy {
 
@@ -200,6 +318,9 @@ public class TranslatorSliceManagerInteractionService {
 
         @JsonProperty("name")
         private String name;
+
+        @JsonProperty("friendlyName")
+        private String friendlyName;
 
         @JsonProperty("type")
         private String type;
@@ -215,6 +336,8 @@ public class TranslatorSliceManagerInteractionService {
         public String getId() { return id; }
 
         public String getName() { return name; }
+
+        public String getFriendlyName() { return friendlyName; }
 
         public String getType() { return type; }
 
