@@ -802,4 +802,39 @@ public class TranslationService {
 
         return new Pair<>(rc, rs);
     }
+
+    public Pair<ResourceCandidate, ResourceSpecification>
+    translateAndPostCloud(TranslatorSliceManagerInteractionService.SliceType sliceType,
+                         TranslatorSliceManagerInteractionService.SliceTypeChunks sliceTypeBlueprint)
+            throws NotExistingEntityException, IOException, CatalogException {
+
+        String cloudId = sliceType.getId();
+        ResourceSpecificationCreate rsc = translatorEngine.buildCloudResourceSpecification(sliceType, sliceTypeBlueprint);
+
+        log.info("Posting Resource Specification to Offer Catalog for cloud {}.", cloudId);
+
+        String rscJson = objectMapper.writeValueAsString(rsc);
+        HttpEntity httpEntity = translatorCatalogInteractionService
+                .post(rscJson, "/resourceCatalogManagement/v2/resourceSpecification");
+        ResourceSpecification rs =
+                objectMapper.readValue(EntityUtils.toString(httpEntity), ResourceSpecification.class);
+
+        Pair<String, String> pair = getCategoryOrCreateIfNotExists(Kind.CLOUD,
+                "/resourceCatalogManagement/v2/resourceCategory/filter");
+
+        ResourceCandidateCreate rcc = translatorEngine.buildCloudResourceCandidate(sliceType.getName(), pair, rs);
+
+        log.info("Posting Resource Candidate to Offer Catalog for cloud {}.", cloudId);
+
+        String rccJson = objectMapper.writeValueAsString(rcc);
+        httpEntity =
+                translatorCatalogInteractionService.post(rccJson, "/resourceCatalogManagement/v2/resourceCandidate");
+        ResourceCandidate rc = objectMapper.readValue(EntityUtils.toString(httpEntity), ResourceCandidate.class);
+
+        mappingInfoService.save(new MappingInfo(cloudId, rc.getId(), rs.getId()));
+
+        log.info("Cloud {} translated & posted.", cloudId);
+
+        return new Pair<>(rc, rs);
+    }
 }
