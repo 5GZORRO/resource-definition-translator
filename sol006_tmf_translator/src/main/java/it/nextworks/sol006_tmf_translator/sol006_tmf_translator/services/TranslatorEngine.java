@@ -1067,4 +1067,97 @@ public class TranslatorEngine {
                         .href(rs.getHref())
                         .name(rs.getName()));
     }
+
+    public ResourceSpecificationCreate
+    buildCloudResourceSpecification(TranslatorSliceManagerInteractionService.SliceType sliceType,
+                                    TranslatorSliceManagerInteractionService.SliceTypeChunks sliceTypeBlueprint)
+            throws NotExistingEntityException {
+
+        String cloudId = sliceType.getId();
+        log.info("Translating cloud {}.", cloudId);
+
+        String cloudName = sliceType.getName();
+        TranslatorSliceManagerInteractionService.SliceBlueprint sliceBlueprint = sliceTypeBlueprint.getSliceBlueprint();
+
+        ResourceSpecificationCreate rsc = new ResourceSpecificationCreate()
+                .description(cloudName)
+                .name(cloudName)
+                .lastUpdate(OffsetDateTime.ofInstant(Instant.now(), ZoneId.of("UTC")));
+
+        List<ResourceSpecCharacteristic> resourceSpecCharacteristics = new ArrayList<>();
+
+        ResourceSpecCharacteristic rscCloudId = new ResourceSpecCharacteristic()
+                .description("ID of the Cloud Resource")
+                .name("Cloud ID")
+                .resourceSpecCharacteristicValue(Collections.singletonList(new ResourceSpecCharacteristicValue()
+                        .value(new Any().alias("Cloud ID").value(cloudId))));
+        resourceSpecCharacteristics.add(rscCloudId);
+
+        IdVsbNameMapping idVsbNameMapping = idVsbNameMappingService.getById(cloudId);
+        ResourceSpecCharacteristic rscVsbName = new ResourceSpecCharacteristic()
+                .description("Name of the Vertical Service Blueprint.")
+                .name("vsbName")
+                .resourceSpecCharacteristicValue(Collections.singletonList(new ResourceSpecCharacteristicValue()
+                        .value(new Any().alias("vsbName").value(idVsbNameMapping.getVsbName()))));
+        resourceSpecCharacteristics.add(rscVsbName);
+
+        TranslatorSliceManagerInteractionService.ComputeChunk computeChunk = sliceBlueprint.getComputeChunks().get(0);
+        TranslatorSliceManagerInteractionService.ComputeChunkRequirements computeChunkRequirements =
+                computeChunk.getComputeChunkRequirements();
+
+        ResourceSpecCharacteristic rscCpu = new ResourceSpecCharacteristic()
+                .description("Cloud CPU Config")
+                .name("cpu")
+                .resourceSpecCharacteristicValue(Collections.singletonList(new ResourceSpecCharacteristicValue()
+                        .value(new Any().alias("cpu").value(computeChunkRequirements.getCpus().getRequired()))));
+        resourceSpecCharacteristics.add(rscCpu);
+
+        TranslatorSliceManagerInteractionService.RequirementsValue ramRequirements = computeChunkRequirements.getRam();
+        ResourceSpecCharacteristic rscRam = new ResourceSpecCharacteristic()
+                .description("Cloud RAM Config")
+                .name("memory")
+                .resourceSpecCharacteristicValue(Collections.singletonList(new ResourceSpecCharacteristicValue()
+                        .value(new Any().alias("memory").value(ramRequirements.getRequired()))
+                        .unitOfMeasure(ramRequirements.getUnits())));
+        resourceSpecCharacteristics.add(rscRam);
+
+        TranslatorSliceManagerInteractionService.RequirementsValue storageRequirements =
+                computeChunkRequirements.getStorage();
+        ResourceSpecCharacteristic rscStorage = new ResourceSpecCharacteristic()
+                .description("Cloud Storage Config")
+                .name("storage")
+                .resourceSpecCharacteristicValue(Collections.singletonList(new ResourceSpecCharacteristicValue()
+                        .value(new Any().alias("storage").value(storageRequirements.getRequired()))
+                        .unitOfMeasure(storageRequirements.getUnits())));
+        resourceSpecCharacteristics.add(rscStorage);
+
+        TranslatorSliceManagerInteractionService.RequirementsValue bandwidthNetworkChunkRequirements =
+                sliceBlueprint.getNetworkChunks().get(0).getNetworkChunkRequirements().getBandwidth();
+        ResourceSpecCharacteristic rscBandwidth = new ResourceSpecCharacteristic()
+                .description("Bandwidth")
+                .name("bandwidth")
+                .resourceSpecCharacteristicValue(Collections.singletonList(new ResourceSpecCharacteristicValue()
+                        .value(new Any().alias("bandwidth").value(bandwidthNetworkChunkRequirements.getRequired()))
+                        .unitOfMeasure(bandwidthNetworkChunkRequirements.getUnits())));
+        resourceSpecCharacteristics.add(rscBandwidth);
+
+        rsc.setResourceSpecCharacteristic(resourceSpecCharacteristics);
+
+        return rsc;
+    }
+
+    public ResourceCandidateCreate
+    buildCloudResourceCandidate(String productName, Pair<String, String> pair, ResourceSpecification rs) {
+        return new ResourceCandidateCreate()
+                .name(productName)
+                .lastUpdate(OffsetDateTime.ofInstant(Instant.now(), ZoneId.of("UTC")))
+                .category(Collections.singletonList(new ResourceCategoryRef()
+                        .name(Kind.CLOUD.name())
+                        .href(pair.getFirst())
+                        .id(pair.getSecond())))
+                .resourceSpecification(new ResourceSpecificationRef()
+                        .id(rs.getId())
+                        .href(rs.getHref())
+                        .name(rs.getName()));
+    }
 }
