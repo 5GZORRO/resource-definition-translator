@@ -8,5 +8,6 @@ public enum Kind {
     SPC,
     RAD,
     EDGE,
-    CLOUD
+    CLOUD,
+    NETWORK_SLICE
 }
