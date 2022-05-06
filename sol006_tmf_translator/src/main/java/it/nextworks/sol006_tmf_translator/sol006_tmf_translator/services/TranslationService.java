@@ -81,6 +81,7 @@ public class TranslationService {
             getCategoryOrCreateIfNotExists(Kind.RAD, "/resourceCatalogManagement/v2/resourceCategory/filter");
             getCategoryOrCreateIfNotExists(Kind.EDGE, "/resourceCatalogManagement/v2/resourceCategory/filter");
             getCategoryOrCreateIfNotExists(Kind.CLOUD, "/resourceCatalogManagement/v2/resourceCategory/filter");
+            getCategoryOrCreateIfNotExists(Kind.NETWORK_SLICE, "/serviceCatalogManagement/v4/serviceCategory/filter");
         } catch (CatalogException | IOException e) {
             log.error(e.getMessage());
             SpringApplication.exit(applicationContext, () -> -1);
@@ -105,6 +106,7 @@ public class TranslationService {
 
                 case NS:
                 case VS:
+                case NETWORK_SLICE:
                     ServiceCategory sc = objectMapper.readValue(EntityUtils.toString(en), ServiceCategory.class);
                     return new Pair<>(sc.getHref(), sc.getId());
 
@@ -134,6 +136,7 @@ public class TranslationService {
 
                 case NS:
                 case VS:
+                case NETWORK_SLICE:
                     ServiceCategoryCreate scc = new ServiceCategoryCreate()
                             .name(name)
                             .lastUpdate(OffsetDateTime.ofInstant(Instant.now(), ZoneId.of("UTC")));
@@ -836,5 +839,39 @@ public class TranslationService {
         log.info("Cloud {} translated & posted.", cloudId);
 
         return new Pair<>(rc, rs);
+    }
+
+    public Pair<ServiceCandidate, ServiceSpecification>
+    translateAndPostNetworkSlice(TranslatorSliceManagerInteractionService.SliceType sliceType)
+            throws NotExistingEntityException, IOException, CatalogException {
+
+        String nsId = sliceType.getId();
+        ServiceSpecificationCreate ssc = translatorEngine.buildNSServiceSpecification(sliceType);
+
+        log.info("Posting Service Specification to Offer Catalog for Network Slice {}.", nsId);
+
+        String sscJson = objectMapper.writeValueAsString(ssc);
+        HttpEntity httpEntity = translatorCatalogInteractionService
+                .post(sscJson, "/serviceCatalogManagement/v4/serviceSpecification");
+        ServiceSpecification ss =
+                objectMapper.readValue(EntityUtils.toString(httpEntity), ServiceSpecification.class);
+
+        Pair<String, String> pair = getCategoryOrCreateIfNotExists(Kind.NETWORK_SLICE,
+                "/serviceCatalogManagement/v4/serviceCategory/filter");
+
+        ServiceCandidateCreate scc = translatorEngine.buildNSServiceCandidate(pair, ss);
+
+        log.info("Posting Service Candidate to Offer Catalog for Network Slice {}.", nsId);
+
+        String sccJson = objectMapper.writeValueAsString(scc);
+        httpEntity =
+                translatorCatalogInteractionService.post(sccJson, "/serviceCatalogManagement/v4/serviceCandidate");
+        ServiceCandidate sc = objectMapper.readValue(EntityUtils.toString(httpEntity), ServiceCandidate.class);
+
+        mappingInfoService.save(new MappingInfo(nsId, sc.getId(), ss.getId()));
+
+        log.info("Network Slice {} translated & posted.", nsId);
+
+        return new Pair<>(sc, ss);
     }
 }
