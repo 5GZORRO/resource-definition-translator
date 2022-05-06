@@ -20,6 +20,7 @@ import org.threeten.bp.ZoneId;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -1159,5 +1160,172 @@ public class TranslatorEngine {
                         .id(rs.getId())
                         .href(rs.getHref())
                         .name(rs.getName()));
+    }
+
+    public ServiceSpecificationCreate
+    buildNSServiceSpecification(TranslatorSliceManagerInteractionService.SliceType sliceType)
+            throws NotExistingEntityException {
+
+        String nsId = sliceType.getId();
+        log.info("Translating ns {}.", nsId);
+
+        ServiceSpecificationCreate ssc = new ServiceSpecificationCreate()
+                .description(sliceType.getDescription())
+                .name(sliceType.getName())
+                .version(sliceType.getVersion())
+                .lastUpdate(OffsetDateTime.ofInstant(Instant.now(), ZoneId.of("UTC")));
+
+        List<ServiceSpecCharacteristic> serviceSpecCharacteristics = new ArrayList<>();
+
+        ServiceSpecCharacteristic sscNsId = new ServiceSpecCharacteristic()
+                .description("ID of the Network Slice")
+                .name("nsId")
+                .serviceSpecCharacteristicValue(Collections.singletonList(new ServiceSpecCharacteristicValue()
+                        .value(new Any().alias("nsId").value(nsId))));
+        serviceSpecCharacteristics.add(sscNsId);
+
+        IdVsbNameMapping idVsbNameMapping = idVsbNameMappingService.getById(nsId);
+        ServiceSpecCharacteristic sscVsbName = new ServiceSpecCharacteristic()
+                .description("Name of the Vertical Service Blueprint.")
+                .name("vsbName")
+                .serviceSpecCharacteristicValue(Collections.singletonList(new ServiceSpecCharacteristicValue()
+                        .value(new Any().alias("vsbName").value(idVsbNameMapping.getVsbName()))));
+        serviceSpecCharacteristics.add(sscVsbName);
+
+        List<TranslatorSliceManagerInteractionService.Attribute> attributes = sliceType.getAttributes();
+
+        TranslatorSliceManagerInteractionService.Attribute tmpAttr = attributes.stream()
+                .filter(attribute -> attribute.getAttributeName().equals("maximum_dl_ue"))
+                .collect(Collectors.toList())
+                .get(0);
+        if(tmpAttr != null) {
+            HashMap<String, String> maxDlUe =
+                    ((TranslatorSliceManagerInteractionService.DictAttribute) tmpAttr).getAttributeValue();
+            if(maxDlUe != null) {
+                ServiceSpecCharacteristic sscMaxDlUe = new ServiceSpecCharacteristic()
+                        .name("Maximum Downlink throughput per UE")
+                        .serviceSpecCharacteristicValue(Collections.singletonList(new ServiceSpecCharacteristicValue()
+                                .value(new Any().alias("maxDlUe").value(maxDlUe.get("value")))
+                                .unitOfMeasure(maxDlUe.get("unit"))));
+                serviceSpecCharacteristics.add(sscMaxDlUe);
+            }
+        }
+
+        tmpAttr = attributes.stream()
+                .filter(attribute -> attribute.getAttributeName().equals("maximum_dl"))
+                .collect(Collectors.toList())
+                .get(0);
+        if(tmpAttr != null) {
+            HashMap<String, String> maxDl =
+                    ((TranslatorSliceManagerInteractionService.DictAttribute) tmpAttr).getAttributeValue();
+            if(maxDl != null) {
+                ServiceSpecCharacteristic sscMaxDl = new ServiceSpecCharacteristic()
+                        .name("Maximum Downlink Throughput per Network Slice")
+                        .serviceSpecCharacteristicValue(Collections.singletonList(new ServiceSpecCharacteristicValue()
+                                .value(new Any().alias("maxDl").value(maxDl.get("value")))
+                                .unitOfMeasure(maxDl.get("unit"))));
+                serviceSpecCharacteristics.add(sscMaxDl);
+            }
+        }
+
+        tmpAttr = attributes.stream()
+                .filter(attribute -> attribute.getAttributeName().equals("maximum_ul_ue"))
+                .collect(Collectors.toList())
+                .get(0);
+        if(tmpAttr != null) {
+            HashMap<String, String> maxUlUe =
+                    ((TranslatorSliceManagerInteractionService.DictAttribute) tmpAttr).getAttributeValue();
+            if(maxUlUe != null) {
+                ServiceSpecCharacteristic sscMaxUlUe = new ServiceSpecCharacteristic()
+                        .name("Maximum Uplink throughput per UE")
+                        .serviceSpecCharacteristicValue(Collections.singletonList(new ServiceSpecCharacteristicValue()
+                                .value(new Any().alias("maxUlUe").value(maxUlUe.get("value")))
+                                .unitOfMeasure(maxUlUe.get("unit"))));
+                serviceSpecCharacteristics.add(sscMaxUlUe);
+            }
+        }
+
+        tmpAttr = attributes.stream()
+                .filter(attribute -> attribute.getAttributeName().equals("maximum_ul"))
+                .collect(Collectors.toList())
+                .get(0);
+        if(tmpAttr != null) {
+            HashMap<String, String> maxUl =
+                    ((TranslatorSliceManagerInteractionService.DictAttribute) tmpAttr).getAttributeValue();
+            if(maxUl != null) {
+                ServiceSpecCharacteristic sscMaxUl = new ServiceSpecCharacteristic()
+                        .name("Maximum Uplink Throughput per Network Slice")
+                        .serviceSpecCharacteristicValue(Collections.singletonList(new ServiceSpecCharacteristicValue()
+                                .value(new Any().alias("maxUl").value(maxUl.get("value")))
+                                .unitOfMeasure(maxUl.get("unit"))));
+                serviceSpecCharacteristics.add(sscMaxUl);
+            }
+        }
+
+        tmpAttr = attributes.stream()
+                .filter(attribute -> attribute.getAttributeName().equals("isolation_level"))
+                .collect(Collectors.toList())
+                .get(0);
+        if(tmpAttr != null) {
+            String isolationLevel =
+                    ((TranslatorSliceManagerInteractionService.StringAttribute) tmpAttr).getAttributeValue();
+            if(isolationLevel != null) {
+                ServiceSpecCharacteristic sscIsolationLevel = new ServiceSpecCharacteristic()
+                        .name("Isolation level")
+                        .serviceSpecCharacteristicValue(Collections.singletonList(new ServiceSpecCharacteristicValue()
+                                .value(new Any().alias("isolationLevel").value(isolationLevel))));
+                serviceSpecCharacteristics.add(sscIsolationLevel);
+            }
+        }
+
+        tmpAttr = attributes.stream()
+                .filter(attribute -> attribute.getAttributeName().equals("data_access"))
+                .collect(Collectors.toList())
+                .get(0);
+        if(tmpAttr != null) {
+            String dataAccess =
+                    ((TranslatorSliceManagerInteractionService.StringAttribute) tmpAttr).getAttributeValue();
+            if(dataAccess != null) {
+                ServiceSpecCharacteristic sscDataAccess = new ServiceSpecCharacteristic()
+                        .name("Data network access")
+                        .serviceSpecCharacteristicValue(Collections.singletonList(new ServiceSpecCharacteristicValue()
+                                .value(new Any().alias("dataAccess").value(dataAccess))));
+                serviceSpecCharacteristics.add(sscDataAccess);
+            }
+        }
+
+        tmpAttr = attributes.stream()
+                .filter(attribute -> attribute.getAttributeName().equals("access_tech"))
+                .collect(Collectors.toList())
+                .get(0);
+        if(tmpAttr != null) {
+            String accessTech =
+                    ((TranslatorSliceManagerInteractionService.StringAttribute) tmpAttr).getAttributeValue();
+            if(accessTech != null) {
+                ServiceSpecCharacteristic sscAccessTech = new ServiceSpecCharacteristic()
+                        .name("Access Technology")
+                        .serviceSpecCharacteristicValue(Collections.singletonList(new ServiceSpecCharacteristicValue()
+                                .value(new Any().alias("accessTech").value(accessTech))));
+                serviceSpecCharacteristics.add(sscAccessTech);
+            }
+        }
+
+        ssc.setServiceSpecCharacteristic(serviceSpecCharacteristics);
+
+        return ssc;
+    }
+
+    public ServiceCandidateCreate buildNSServiceCandidate(Pair<String, String> pair, ServiceSpecification ss) {
+        return new ServiceCandidateCreate()
+                .name(ss.getName())
+                .lastUpdate(OffsetDateTime.ofInstant(Instant.now(), ZoneId.of("UTC")))
+                .category(Collections.singletonList(new ServiceCategoryRef()
+                        .name(Kind.NETWORK_SLICE.name())
+                        .href(pair.getFirst())
+                        .id(pair.getSecond())))
+                .serviceSpecification(new ServiceSpecificationRef()
+                        .id(ss.getId())
+                        .href(ss.getHref())
+                        .name(ss.getName()));
     }
 }
