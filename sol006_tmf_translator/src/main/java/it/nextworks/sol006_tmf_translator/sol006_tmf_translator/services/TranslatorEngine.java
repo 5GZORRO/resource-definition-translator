@@ -1195,6 +1195,77 @@ public class TranslatorEngine {
         List<TranslatorSliceManagerInteractionService.Attribute> attributes = sliceType.getAttributes();
 
         TranslatorSliceManagerInteractionService.Attribute tmpAttr = attributes.stream()
+                .filter(attribute -> attribute.getAttributeName().equals("coverage_area"))
+                .collect(Collectors.toList())
+                .get(0);
+        if(tmpAttr != null) {
+            HashMap<String, String> coverageArea =
+                    ((TranslatorSliceManagerInteractionService.DictAttribute) tmpAttr).getAttributeValue();
+            if(coverageArea != null) {
+                List<ServiceSpecCharacteristicValue> sscvs = new ArrayList<>();
+
+                String latitude = coverageArea.get("latitude");
+                if(latitude != null)
+                    sscvs.add(new ServiceSpecCharacteristicValue().value(new Any().alias("latitude").value(latitude)));
+
+                String longitude = coverageArea.get("longitude");
+                if(longitude != null)
+                    sscvs.add(new ServiceSpecCharacteristicValue().value(new Any().alias("longitude").value(longitude)));
+
+                ServiceSpecCharacteristic sscCoverageArea = new ServiceSpecCharacteristic()
+                        .name("Coverage Area")
+                        .serviceSpecCharacteristicValue(sscvs);
+                serviceSpecCharacteristics.add(sscCoverageArea);
+            }
+        }
+
+        tmpAttr = attributes.stream()
+                .filter(attribute -> attribute.getAttributeName().equals("spectrum"))
+                .collect(Collectors.toList())
+                .get(0);
+        if(tmpAttr != null) {
+            HashMap<String, String> spectrum =
+                    ((TranslatorSliceManagerInteractionService.DictAttribute) tmpAttr).getAttributeValue();
+            if(spectrum != null) {
+                List<ServiceSpecCharacteristicValue> sscvs = new ArrayList<>();
+
+                String operatingBand = spectrum.get("operating_band");
+                if(operatingBand != null)
+                    sscvs.add(new ServiceSpecCharacteristicValue().value(new Any().alias("operating_band").value(operatingBand)));
+
+                String fulLow = spectrum.get("ful_low");
+                if(fulLow != null)
+                    sscvs.add(new ServiceSpecCharacteristicValue().value(new Any().alias("ful_low").value(fulLow)));
+
+                String fulHigh = spectrum.get("ful_high");
+                if(fulHigh != null)
+                    sscvs.add(new ServiceSpecCharacteristicValue().value(new Any().alias("ful_high").value(fulHigh)));
+
+                String fdlLow = spectrum.get("fdl_low");
+                if(fdlLow != null)
+                    sscvs.add(new ServiceSpecCharacteristicValue().value(new Any().alias("fdl_low").value(fdlLow)));
+
+                String fdlHigh = spectrum.get("fdl_high");
+                if(fdlHigh != null)
+                    sscvs.add(new ServiceSpecCharacteristicValue().value(new Any().alias("fdl_high").value(fdlHigh)));
+
+                String duplexMode = spectrum.get("duplex_mode");
+                if(duplexMode != null)
+                    sscvs.add(new ServiceSpecCharacteristicValue().value(new Any().alias("duplex_mode").value(duplexMode)));
+
+                String accessTech = spectrum.get("access_tech");
+                if(accessTech != null)
+                    sscvs.add(new ServiceSpecCharacteristicValue().value(new Any().alias("access_tech").value(accessTech)));
+
+                ServiceSpecCharacteristic sscSpectrum = new ServiceSpecCharacteristic()
+                        .name("Radio Spectrum")
+                        .serviceSpecCharacteristicValue(sscvs);
+                serviceSpecCharacteristics.add(sscSpectrum);
+            }
+        }
+
+
+        tmpAttr = attributes.stream()
                 .filter(attribute -> attribute.getAttributeName().equals("maximum_dl_ue"))
                 .collect(Collectors.toList())
                 .get(0);
@@ -1205,7 +1276,7 @@ public class TranslatorEngine {
                 ServiceSpecCharacteristic sscMaxDlUe = new ServiceSpecCharacteristic()
                         .name("Maximum Downlink throughput per UE")
                         .serviceSpecCharacteristicValue(Collections.singletonList(new ServiceSpecCharacteristicValue()
-                                .value(new Any().alias("maxDlUe").value(maxDlUe.get("value")))
+                                .value(new Any().alias("maximum_dl_ue").value(maxDlUe.get("value")))
                                 .unitOfMeasure(maxDlUe.get("unit"))));
                 serviceSpecCharacteristics.add(sscMaxDlUe);
             }
@@ -1222,7 +1293,7 @@ public class TranslatorEngine {
                 ServiceSpecCharacteristic sscMaxDl = new ServiceSpecCharacteristic()
                         .name("Maximum Downlink Throughput per Network Slice")
                         .serviceSpecCharacteristicValue(Collections.singletonList(new ServiceSpecCharacteristicValue()
-                                .value(new Any().alias("maxDl").value(maxDl.get("value")))
+                                .value(new Any().alias("maximum_dl").value(maxDl.get("value")))
                                 .unitOfMeasure(maxDl.get("unit"))));
                 serviceSpecCharacteristics.add(sscMaxDl);
             }
@@ -1239,7 +1310,7 @@ public class TranslatorEngine {
                 ServiceSpecCharacteristic sscMaxUlUe = new ServiceSpecCharacteristic()
                         .name("Maximum Uplink throughput per UE")
                         .serviceSpecCharacteristicValue(Collections.singletonList(new ServiceSpecCharacteristicValue()
-                                .value(new Any().alias("maxUlUe").value(maxUlUe.get("value")))
+                                .value(new Any().alias("maximum_ul_ue").value(maxUlUe.get("value")))
                                 .unitOfMeasure(maxUlUe.get("unit"))));
                 serviceSpecCharacteristics.add(sscMaxUlUe);
             }
@@ -1256,7 +1327,7 @@ public class TranslatorEngine {
                 ServiceSpecCharacteristic sscMaxUl = new ServiceSpecCharacteristic()
                         .name("Maximum Uplink Throughput per Network Slice")
                         .serviceSpecCharacteristicValue(Collections.singletonList(new ServiceSpecCharacteristicValue()
-                                .value(new Any().alias("maxUl").value(maxUl.get("value")))
+                                .value(new Any().alias("maximum_ul").value(maxUl.get("value")))
                                 .unitOfMeasure(maxUl.get("unit"))));
                 serviceSpecCharacteristics.add(sscMaxUl);
             }
@@ -1273,7 +1344,7 @@ public class TranslatorEngine {
                 ServiceSpecCharacteristic sscIsolationLevel = new ServiceSpecCharacteristic()
                         .name("Isolation level")
                         .serviceSpecCharacteristicValue(Collections.singletonList(new ServiceSpecCharacteristicValue()
-                                .value(new Any().alias("isolationLevel").value(isolationLevel))));
+                                .value(new Any().alias("isolation_level").value(isolationLevel))));
                 serviceSpecCharacteristics.add(sscIsolationLevel);
             }
         }
@@ -1289,7 +1360,7 @@ public class TranslatorEngine {
                 ServiceSpecCharacteristic sscDataAccess = new ServiceSpecCharacteristic()
                         .name("Data network access")
                         .serviceSpecCharacteristicValue(Collections.singletonList(new ServiceSpecCharacteristicValue()
-                                .value(new Any().alias("dataAccess").value(dataAccess))));
+                                .value(new Any().alias("data_access").value(dataAccess))));
                 serviceSpecCharacteristics.add(sscDataAccess);
             }
         }
@@ -1305,7 +1376,7 @@ public class TranslatorEngine {
                 ServiceSpecCharacteristic sscAccessTech = new ServiceSpecCharacteristic()
                         .name("Access Technology")
                         .serviceSpecCharacteristicValue(Collections.singletonList(new ServiceSpecCharacteristicValue()
-                                .value(new Any().alias("accessTech").value(accessTech))));
+                                .value(new Any().alias("access_tech").value(accessTech))));
                 serviceSpecCharacteristics.add(sscAccessTech);
             }
         }
