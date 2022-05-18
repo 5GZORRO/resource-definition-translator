@@ -1194,13 +1194,12 @@ public class TranslatorEngine {
 
         List<TranslatorSliceManagerInteractionService.Attribute> attributes = sliceType.getAttributes();
 
-        TranslatorSliceManagerInteractionService.Attribute tmpAttr = attributes.stream()
+        List<TranslatorSliceManagerInteractionService.Attribute> coverageAreas = attributes.stream()
                 .filter(attribute -> attribute.getAttributeName().equals("coverage_area"))
-                .collect(Collectors.toList())
-                .get(0);
-        if(tmpAttr != null) {
+                .collect(Collectors.toList());
+        if(!coverageAreas.isEmpty()) {
             HashMap<String, String> coverageArea =
-                    ((TranslatorSliceManagerInteractionService.DictAttribute) tmpAttr).getAttributeValue();
+                    ((TranslatorSliceManagerInteractionService.DictAttribute) coverageAreas.get(0)).getAttributeValue();
             if(coverageArea != null) {
                 List<ServiceSpecCharacteristicValue> sscvs = new ArrayList<>();
 
@@ -1219,13 +1218,12 @@ public class TranslatorEngine {
             }
         }
 
-        tmpAttr = attributes.stream()
+        List<TranslatorSliceManagerInteractionService.Attribute> spectres = attributes.stream()
                 .filter(attribute -> attribute.getAttributeName().equals("spectrum"))
-                .collect(Collectors.toList())
-                .get(0);
-        if(tmpAttr != null) {
+                .collect(Collectors.toList());
+        if(!spectres.isEmpty()) {
             HashMap<String, String> spectrum =
-                    ((TranslatorSliceManagerInteractionService.DictAttribute) tmpAttr).getAttributeValue();
+                    ((TranslatorSliceManagerInteractionService.DictAttribute) spectres.get(0)).getAttributeValue();
             if(spectrum != null) {
                 List<ServiceSpecCharacteristicValue> sscvs = new ArrayList<>();
 
@@ -1265,13 +1263,12 @@ public class TranslatorEngine {
         }
 
 
-        tmpAttr = attributes.stream()
+        List<TranslatorSliceManagerInteractionService.Attribute> maximumDlUes = attributes.stream()
                 .filter(attribute -> attribute.getAttributeName().equals("maximum_dl_ue"))
-                .collect(Collectors.toList())
-                .get(0);
-        if(tmpAttr != null) {
+                .collect(Collectors.toList());
+        if(!maximumDlUes.isEmpty()) {
             HashMap<String, String> maxDlUe =
-                    ((TranslatorSliceManagerInteractionService.DictAttribute) tmpAttr).getAttributeValue();
+                    ((TranslatorSliceManagerInteractionService.DictAttribute) maximumDlUes.get(0)).getAttributeValue();
             if(maxDlUe != null) {
                 ServiceSpecCharacteristic sscMaxDlUe = new ServiceSpecCharacteristic()
                         .name("Maximum Downlink throughput per UE")
@@ -1282,13 +1279,12 @@ public class TranslatorEngine {
             }
         }
 
-        tmpAttr = attributes.stream()
+        List<TranslatorSliceManagerInteractionService.Attribute> maximumDls = attributes.stream()
                 .filter(attribute -> attribute.getAttributeName().equals("maximum_dl"))
-                .collect(Collectors.toList())
-                .get(0);
-        if(tmpAttr != null) {
+                .collect(Collectors.toList());
+        if(!maximumDls.isEmpty()) {
             HashMap<String, String> maxDl =
-                    ((TranslatorSliceManagerInteractionService.DictAttribute) tmpAttr).getAttributeValue();
+                    ((TranslatorSliceManagerInteractionService.DictAttribute) maximumDls.get(0)).getAttributeValue();
             if(maxDl != null) {
                 ServiceSpecCharacteristic sscMaxDl = new ServiceSpecCharacteristic()
                         .name("Maximum Downlink Throughput per Network Slice")
@@ -1299,13 +1295,12 @@ public class TranslatorEngine {
             }
         }
 
-        tmpAttr = attributes.stream()
+        List<TranslatorSliceManagerInteractionService.Attribute> maximumUlUes = attributes.stream()
                 .filter(attribute -> attribute.getAttributeName().equals("maximum_ul_ue"))
-                .collect(Collectors.toList())
-                .get(0);
-        if(tmpAttr != null) {
+                .collect(Collectors.toList());
+        if(!maximumUlUes.isEmpty()) {
             HashMap<String, String> maxUlUe =
-                    ((TranslatorSliceManagerInteractionService.DictAttribute) tmpAttr).getAttributeValue();
+                    ((TranslatorSliceManagerInteractionService.DictAttribute) maximumUlUes.get(0)).getAttributeValue();
             if(maxUlUe != null) {
                 ServiceSpecCharacteristic sscMaxUlUe = new ServiceSpecCharacteristic()
                         .name("Maximum Uplink throughput per UE")
@@ -1316,13 +1311,12 @@ public class TranslatorEngine {
             }
         }
 
-        tmpAttr = attributes.stream()
+        List<TranslatorSliceManagerInteractionService.Attribute> maximumUls = attributes.stream()
                 .filter(attribute -> attribute.getAttributeName().equals("maximum_ul"))
-                .collect(Collectors.toList())
-                .get(0);
-        if(tmpAttr != null) {
+                .collect(Collectors.toList());
+        if(!maximumUls.isEmpty()) {
             HashMap<String, String> maxUl =
-                    ((TranslatorSliceManagerInteractionService.DictAttribute) tmpAttr).getAttributeValue();
+                    ((TranslatorSliceManagerInteractionService.DictAttribute) maximumUls.get(0)).getAttributeValue();
             if(maxUl != null) {
                 ServiceSpecCharacteristic sscMaxUl = new ServiceSpecCharacteristic()
                         .name("Maximum Uplink Throughput per Network Slice")
@@ -1333,13 +1327,13 @@ public class TranslatorEngine {
             }
         }
 
-        tmpAttr = attributes.stream()
+        List<TranslatorSliceManagerInteractionService.Attribute> isolationLevels = attributes.stream()
                 .filter(attribute -> attribute.getAttributeName().equals("isolation_level"))
-                .collect(Collectors.toList())
-                .get(0);
-        if(tmpAttr != null) {
+                .collect(Collectors.toList());
+        if(!isolationLevels.isEmpty()) {
             String isolationLevel =
-                    ((TranslatorSliceManagerInteractionService.StringAttribute) tmpAttr).getAttributeValue();
+                    ((TranslatorSliceManagerInteractionService.StringAttribute) isolationLevels.get(0))
+                            .getAttributeValue();
             if(isolationLevel != null) {
                 ServiceSpecCharacteristic sscIsolationLevel = new ServiceSpecCharacteristic()
                         .name("Isolation level")
@@ -1349,13 +1343,12 @@ public class TranslatorEngine {
             }
         }
 
-        tmpAttr = attributes.stream()
+        List<TranslatorSliceManagerInteractionService.Attribute> dataAccesses = attributes.stream()
                 .filter(attribute -> attribute.getAttributeName().equals("data_access"))
-                .collect(Collectors.toList())
-                .get(0);
-        if(tmpAttr != null) {
+                .collect(Collectors.toList());
+        if(!dataAccesses.isEmpty()) {
             String dataAccess =
-                    ((TranslatorSliceManagerInteractionService.StringAttribute) tmpAttr).getAttributeValue();
+                    ((TranslatorSliceManagerInteractionService.StringAttribute) dataAccesses.get(0)).getAttributeValue();
             if(dataAccess != null) {
                 ServiceSpecCharacteristic sscDataAccess = new ServiceSpecCharacteristic()
                         .name("Data network access")
@@ -1365,13 +1358,12 @@ public class TranslatorEngine {
             }
         }
 
-        tmpAttr = attributes.stream()
+        List<TranslatorSliceManagerInteractionService.Attribute> accessTechs = attributes.stream()
                 .filter(attribute -> attribute.getAttributeName().equals("access_tech"))
-                .collect(Collectors.toList())
-                .get(0);
-        if(tmpAttr != null) {
+                .collect(Collectors.toList());
+        if(!accessTechs.isEmpty()) {
             String accessTech =
-                    ((TranslatorSliceManagerInteractionService.StringAttribute) tmpAttr).getAttributeValue();
+                    ((TranslatorSliceManagerInteractionService.StringAttribute) accessTechs.get(0)).getAttributeValue();
             if(accessTech != null) {
                 ServiceSpecCharacteristic sscAccessTech = new ServiceSpecCharacteristic()
                         .name("Access Technology")
