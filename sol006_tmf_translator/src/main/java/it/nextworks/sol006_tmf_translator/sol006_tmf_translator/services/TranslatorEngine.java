@@ -1336,9 +1336,9 @@ public class TranslatorEngine {
                             .getAttributeValue();
             if(isolationLevel != null) {
                 ServiceSpecCharacteristic sscIsolationLevel = new ServiceSpecCharacteristic()
-                        .name("Isolation Level")
+                        .name("Isolation level")
                         .serviceSpecCharacteristicValue(Collections.singletonList(new ServiceSpecCharacteristicValue()
-                                .value(new Any().alias("Isolation Level").value(isolationLevel))));
+                                .value(new Any().alias("Isolation level").value(isolationLevel))));
                 serviceSpecCharacteristics.add(sscIsolationLevel);
             }
         }
