@@ -1,25 +1,35 @@
 # Resource Definition Translator
-The Resource Definition Translator is a component of the Virtual Resource Manager (VRM) architecture.
-Application that allows the translation of SOL006 descriptors into resources and services using the TMF Forum models.
-The translated descriptors are posted on the Resource and Service Offer Catalog. The descriptors to be translated can be
-specified either by the northbound interface or by specifying the descriptor id present on a descriptor repository.
-If you want to install the Resource Definition Translator using docker-compose or running only the translator by itself 
-skip the Requirements, and the first installation sections.
-## Requirements 
-- Java 8
+
+## Introduction
+The Resource Definition Translator is a component of the Any Resource Manager (xRM) architecture.
+Application that allows the translation of Virtual Network Function, Physical Network Function, Network Service, 
+Radio, Spectrum, Edge, Cloud and Slice resources and services into resources and services specified with the
+TMF Forum models. The translated descriptors are posted on the Resource and Service Offer Catalog.
+
+## Prerequisites
+
+### System Requirements
+- 1 vCPU
+- 2GB RAM
+
+### Software dependencies
+- PostgreSQL </br>
+  ```bash
+  docker run --name some-postgres -p 5432:5432 -e POSTGRES_PASSWORD=postgres -d postgres
+  ```
+
+If you want to deploy the Resource Definition Translator in a not-virtualized environment you'll need also:
+
+- Java 8 </br>
   ```bash
   sudo apt update
   sudo apt install openjdk-8-jdk
   ```
-- Maven
+- Maven </br>
   ```bash
-  sudo apt update
-  sudo apt install maven
-  ```
-- PostgreSQL
-  ```bash
-  docker run --name some-postgres -p 5432:5432 -e POSTGRES_PASSWORD=mysecretpassword -d postgres
-  ```
+    sudo apt update
+    sudo apt install maven
+    ```
 - SOL006 Library
   ```bash
   git clone https://github.com/nextworks-it/nfv-sol-libs.git
@@ -32,7 +42,14 @@ skip the Requirements, and the first installation sections.
   cd resource-and-service-offer-catalog/information_models
   mvn clean install
   ```
+
+### 5GZORRO Module dependencies
+- [Resource and Service Offer Catalogue](https://github.com/5GZORRO/resource-and-service-offer-catalog)
+
 ## Installation
+The following procedures consider the previously listed dependencies already up and running.
+
+### Local Machine
 Customize your translator properties in 
 ```resource-definition-translator/sol006_tmf_translator/src/main/resources/application.properties``` 
 then from ```resource-definition-translator/``` run the following commands.
@@ -41,14 +58,14 @@ mvn clean install
 java -jar sol006_tmf_translator/target/sol006_tmf_translator-1.0-SNAPSHOT.jar
 ```
 
-## Installation [docker-compose]
+### Docker  Compose
 Customize your Resource Definition Translator properties in ```resource-definition-translator/deployment/.env```. </br>
 From ```resource-definition-translator/``` run the following command.
 ```bash
 docker-compose -f deployment/docker-compose.yaml up -d
 ```
 
-## Installation [Dockerfile]
+### Dockerfile
 Customize your Resource Definition Translator properties in 
 ```resource-definition-translator/deployment/translator_dockerfile/env_file```. </br>
 From ```resource-definition-translator/``` run the following command.
@@ -64,7 +81,12 @@ Run the application from ```resource-definition-translator/deployment/translator
 docker run --env-file=env_file translator:latest
 ```
 
-## Usage
-Browsing `http://localhost:TRANSLATOR_PORT/sol006-tmf/` you can access the swagger documentation and test the REST APIs.
+## Configuration
+No particular configurations are needed.
 
+## Maintainers
+**Pietro Giuseppe Giardina** - *Design* - p.giardina@nextworks.it </br>
+**Michael De Angelis** - *Develop and Design* - m.deangelis@nextworks.it </br>
 
+## License
+This module is distributed under [Apache 2.0 License](LICENSE) terms.
