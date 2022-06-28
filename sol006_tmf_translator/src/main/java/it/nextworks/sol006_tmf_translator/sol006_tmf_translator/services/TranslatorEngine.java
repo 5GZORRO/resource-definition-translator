@@ -1257,6 +1257,8 @@ public class TranslatorEngine {
 
                 ServiceSpecCharacteristic sscSpectrum = new ServiceSpecCharacteristic()
                         .name("Radio Spectrum")
+                        .configurable(sliceType.getConfigurableParameters().stream().filter(configurableParameter ->
+                                configurableParameter.getParameterName().equals("operating_band")).count() == 1)
                         .serviceSpecCharacteristicValue(sscvs);
                 serviceSpecCharacteristics.add(sscSpectrum);
             }
