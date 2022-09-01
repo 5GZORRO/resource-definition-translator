@@ -19,11 +19,17 @@ public class IdVsbNameMapping {
     @Column(name = "vsb_name")
     private String vsbName;
 
+    @JsonProperty("snfvoUrl")
+    @Column(name = "snfvo_url")
+    private String snfvoUrl;
+
     @JsonCreator
     public IdVsbNameMapping(@JsonProperty("id") String id,
-                            @JsonProperty("vsbName") String vsbName) {
+                            @JsonProperty("vsbName") String vsbName,
+                            @JsonProperty("snfvoUrl") String snfvoUrl) {
         this.id = id;
         this.vsbName = vsbName;
+        this.snfvoUrl = snfvoUrl;
     }
 
     public IdVsbNameMapping() {}
@@ -46,6 +52,15 @@ public class IdVsbNameMapping {
 
     public void setVsbName(String vsbName) { this.vsbName = vsbName; }
 
+    public IdVsbNameMapping snfvoUrl(String snfvoUrl) {
+        this.snfvoUrl = snfvoUrl;
+        return this;
+    }
+
+    public String getSnfvoUrl() { return snfvoUrl; }
+
+    public void setSnfvoUrl(String snfvoUrl) { this.snfvoUrl = snfvoUrl; }
+
     @Override
     public boolean equals(java.lang.Object o) {
         if(this == o)
@@ -56,11 +71,12 @@ public class IdVsbNameMapping {
 
         IdVsbNameMapping idVsbNameMapping = (IdVsbNameMapping) o;
         return Objects.equals(this.id, idVsbNameMapping.id) &&
-                Objects.equals(this.vsbName, idVsbNameMapping.vsbName);
+                Objects.equals(this.vsbName, idVsbNameMapping.vsbName) &&
+                Objects.equals(this.snfvoUrl, idVsbNameMapping.snfvoUrl);
     }
 
     @Override
-    public int hashCode() { return Objects.hash(id, vsbName); }
+    public int hashCode() { return Objects.hash(id, vsbName, snfvoUrl); }
 
     @Override
     public String toString() {
@@ -69,6 +85,7 @@ public class IdVsbNameMapping {
         sb.append("class IdVsbNameMapping {\n");
         sb.append("    id: ").append(toIndentedString(id)).append("\n");
         sb.append("    vsbName: ").append(toIndentedString(vsbName)).append("\n");
+        sb.append("    snfvoUrl: ").append(toIndentedString(snfvoUrl)).append("\n");
         sb.append("}");
 
         return sb.toString();
