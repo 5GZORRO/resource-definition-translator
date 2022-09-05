@@ -7,11 +7,10 @@ import io.swagger.annotations.ApiResponses;
 import it.nextworks.sol006_tmf_translator.information_models.commons.Pair;
 import it.nextworks.sol006_tmf_translator.information_models.commons.SpectrumParameters;
 import it.nextworks.sol006_tmf_translator.interfaces.RadioTranslatorInterface;
-import it.nextworks.sol006_tmf_translator.sol006_tmf_translator.commons.exception.CatalogException;
-import it.nextworks.sol006_tmf_translator.sol006_tmf_translator.commons.exception.MalformattedElementException;
-import it.nextworks.sol006_tmf_translator.sol006_tmf_translator.commons.exception.SourceException;
+import it.nextworks.sol006_tmf_translator.sol006_tmf_translator.commons.exception.*;
 import it.nextworks.sol006_tmf_translator.sol006_tmf_translator.services.TranslationService;
 import it.nextworks.sol006_tmf_translator.sol006_tmf_translator.services.TranslatorRAPPInteractionService;
+import it.nextworks.sol006_tmf_translator.sol006_tmf_translator.services.TranslatorSliceManagerInteractionService;
 import it.nextworks.tmf_offering_catalog.information_models.resource.ResourceCandidate;
 import it.nextworks.tmf_offering_catalog.information_models.resource.ResourceSpecification;
 import org.slf4j.Logger;
@@ -24,6 +23,7 @@ import org.springframework.web.bind.annotation.*;
 import javax.servlet.http.HttpServletRequest;
 import javax.validation.Valid;
 import java.io.IOException;
+import java.util.stream.Collectors;
 
 @RestController
 public class RadioTranslatorController implements RadioTranslatorInterface {
@@ -34,19 +34,23 @@ public class RadioTranslatorController implements RadioTranslatorInterface {
 
     private final HttpServletRequest request;
 
-    private final TranslationService translationService;
+    private final TranslatorSliceManagerInteractionService translatorSliceManagerInteractionService;
 
     private final TranslatorRAPPInteractionService translatorRAPPInteractionService;
+
+    private final TranslationService translationService;
 
     @Autowired
     public RadioTranslatorController(ObjectMapper objectMapper,
                                      HttpServletRequest request,
-                                     TranslationService translationService,
-                                     TranslatorRAPPInteractionService translatorRAPPInteractionService) {
-        this.objectMapper                     = objectMapper;
-        this.request                          = request;
-        this.translationService               = translationService;
-        this.translatorRAPPInteractionService = translatorRAPPInteractionService;
+                                     TranslatorSliceManagerInteractionService translatorSliceManagerInteractionService,
+                                     TranslatorRAPPInteractionService translatorRAPPInteractionService,
+                                     TranslationService translationService) {
+        this.objectMapper                             = objectMapper;
+        this.request                                  = request;
+        this.translatorSliceManagerInteractionService = translatorSliceManagerInteractionService;
+        this.translatorRAPPInteractionService         = translatorRAPPInteractionService;
+        this.translationService                       = translationService;
     }
 
     @Override
@@ -55,17 +59,40 @@ public class RadioTranslatorController implements RadioTranslatorInterface {
             @ApiResponse(code = 400, message = "Bad Request", response = ErrMsg.class),
             @ApiResponse(code = 500, message = "Internal Server Error", response = ErrMsg.class)
     })
-    @RequestMapping(value = "/radToTmf/{radId}",
+    @RequestMapping(value = "/radToTmf/{sliceTypeId}",
             produces = { "application/json;charset=utf-8" },
             method = RequestMethod.POST)
     @ResponseStatus(value = HttpStatus.CREATED)
     public ResponseEntity<?>
-    translateRadio(@ApiParam(value = "Radio ID of the Radio Resource to be translated.", required = true)
-                   @PathVariable("radId") String radId,
+    translateRadio(@ApiParam(value = "Slice Type ID of the Radio Resource to be translated.", required = true)
+                   @PathVariable("sliceTypeId") String sliceTypeId,
                    @ApiParam(value = "Spectrum parameters of the Radio Resource to be translated.", required = true)
                    @Valid @RequestBody SpectrumParameters spectrumParameters) {
 
-        log.info("Received request to translate & post Radio Resource with Radio id " + radId + ".");
+        log.info("Received request to translate & post Radio Resource with Slice Type ID {}.", sliceTypeId);
+
+        TranslatorSliceManagerInteractionService.SliceTypeChunks sliceTypeBlueprint;
+        try {
+            sliceTypeBlueprint = translatorSliceManagerInteractionService.getSliceBlueprint(sliceTypeId);
+        } catch (SourceException e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new ErrMsg(e.getMessage()));
+        } catch (MissingEntityOnSourceException e) {
+            String msg = "Radio Blueprint with id " + sliceTypeId + " not found in Slice Manager.";
+            log.error(msg);
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ErrMsg(msg));
+        } catch (IOException e) {
+            String msg = e.getMessage();
+            log.error(msg);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new ErrMsg(msg));
+        }
+
+        TranslatorSliceManagerInteractionService.RadioChunk radioChunk =
+                sliceTypeBlueprint.getSliceBlueprint().getRadioChunks().get(0);
+        TranslatorSliceManagerInteractionService.ChunkTopology chunkTopology = radioChunk.getChunkTopology();
+        TranslatorSliceManagerInteractionService.SelectedPhy selectedPhy =
+                chunkTopology.getSelectedPhys().stream().filter(sp -> !sp.getType().equals("WIRED_ROOT"))
+                        .collect(Collectors.toList()).get(0);
+        String radId = selectedPhy.getId();
 
         TranslatorRAPPInteractionService.RAPPWrapper rappWrapper;
         try {
