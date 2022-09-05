@@ -107,8 +107,8 @@ public class RadioTranslatorController implements RadioTranslatorInterface {
 
         Pair<ResourceCandidate, ResourceSpecification> translation;
         try {
-            translation = translationService.translateRad(rappWrapper, radId);
-        } catch (IOException | CatalogException e) {
+            translation = translationService.translateAndPostRad(rappWrapper, radId, sliceTypeId);
+        } catch (IOException | CatalogException | NotExistingEntityException e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new ErrMsg(e.getMessage()));
         } catch (MalformattedElementException e) {
             String msg = e.getMessage();

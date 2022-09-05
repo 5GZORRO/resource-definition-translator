@@ -8,10 +8,12 @@ import it.nextworks.nfvmano.libs.descriptors.sol006.Nsd;
 import it.nextworks.nfvmano.libs.descriptors.sol006.Pnfd;
 import it.nextworks.nfvmano.libs.descriptors.sol006.Vnfd;
 import it.nextworks.sol006_tmf_translator.information_models.commons.Pair;
+import it.nextworks.sol006_tmf_translator.information_models.persistence.IdVsbNameMapping;
 import it.nextworks.sol006_tmf_translator.information_models.persistence.MappingInfo;
 import it.nextworks.sol006_tmf_translator.sol006_tmf_translator.commons.config.CustomOffsetDateTimeSerializer;
 import it.nextworks.sol006_tmf_translator.information_models.commons.enums.Kind;
 import it.nextworks.sol006_tmf_translator.sol006_tmf_translator.commons.exception.*;
+import it.nextworks.tmf_offering_catalog.information_models.common.Any;
 import it.nextworks.tmf_offering_catalog.information_models.product.*;
 import it.nextworks.tmf_offering_catalog.information_models.resource.*;
 import it.nextworks.tmf_offering_catalog.information_models.service.*;
@@ -47,6 +49,8 @@ public class TranslationService {
 
     private final TranslatorDescSourceInteractionService translatorDescSourceInteractionService;
 
+    private final IdVsbNameMappingService idVsbNameMappingService;
+
     private final MappingInfoService mappingInfoService;
 
     private final ApplicationContext applicationContext;
@@ -56,6 +60,7 @@ public class TranslationService {
                               TranslatorEngine translatorEngine,
                               TranslatorCatalogInteractionService translatorCatalogInteractionService,
                               TranslatorDescSourceInteractionService translatorDescSourceInteractionService,
+                              IdVsbNameMappingService idVsbNameMappingService,
                               MappingInfoService mappingInfoService,
                               ApplicationContext applicationContext) {
         this.objectMapper = objectMapper;
@@ -67,6 +72,7 @@ public class TranslationService {
         this.translatorEngine = translatorEngine;
         this.translatorCatalogInteractionService = translatorCatalogInteractionService;
         this.translatorDescSourceInteractionService = translatorDescSourceInteractionService;
+        this.idVsbNameMappingService = idVsbNameMappingService;
         this.mappingInfoService = mappingInfoService;
     }
 
@@ -699,8 +705,9 @@ public class TranslationService {
             return translateAndPostSpc(rappWrapper, spcId);
     }
 
-    public Pair<ResourceCandidate, ResourceSpecification> translateAndPostRad(TranslatorRAPPInteractionService.RAPPWrapper rappWrapper, String radId)
-            throws IOException, CatalogException, MalformattedElementException {
+    public Pair<ResourceCandidate, ResourceSpecification>
+    translateAndPostRad(TranslatorRAPPInteractionService.RAPPWrapper rappWrapper, String radId, String sliceTypeId)
+            throws IOException, CatalogException, MalformattedElementException, NotExistingEntityException {
 
         Pair<String, String> geographicAddressRef = getGeographicAddressOrCreate(rappWrapper.getGeographicAddressCreate());
         ResourceSpecificationCreate resourceSpecificationCreate = rappWrapper.getResourceSpecificationCreate();
@@ -708,6 +715,14 @@ public class TranslationService {
                 .name("Geographic Address")
                 .id(geographicAddressRef.getFirst())
                 .href(geographicAddressRef.getSecond())));
+
+        IdVsbNameMapping idVsbNameMapping = idVsbNameMappingService.getById(sliceTypeId);
+        ResourceSpecCharacteristic rscVsbName = new ResourceSpecCharacteristic()
+                .description("Name of the Vertical Service Blueprint.")
+                .name("vsbName")
+                .resourceSpecCharacteristicValue(Collections.singletonList(new ResourceSpecCharacteristicValue()
+                        .value(new Any().alias("vsbName").value(idVsbNameMapping.getVsbName()))));
+        resourceSpecificationCreate.getResourceSpecCharacteristic().add(rscVsbName);
 
         log.info("Posting Resource Specification to Offer Catalog for radio resource " + radId + ".");
 
@@ -733,42 +748,6 @@ public class TranslationService {
         log.info("Spectrum Resource " + radId + " translated & posted.");
 
         return new Pair<>(rc, rs);
-    }
-
-    public Pair<ResourceCandidate, ResourceSpecification> translateRad(TranslatorRAPPInteractionService.RAPPWrapper rappWrapper, String radId)
-            throws IOException, CatalogException, MalformattedElementException {
-
-        boolean found = true;
-        MappingInfo mappingInfo = null;
-        try {
-            mappingInfo = mappingInfoService.get(radId);
-        } catch (NotExistingEntityException e) {
-            found = false;
-        }
-
-        if(found) {
-            Pair<ResourceCandidate, ResourceSpecification> pair = null;
-            try {
-                pair = translatorCatalogInteractionService
-                        .isResourcePresent(mappingInfo.getCandidateCatalogId(), mappingInfo.getSpecificationCatalogId());
-            } catch (MissingEntityOnCatalogException | ResourceMismatchException e) {
-                found = false;
-            }
-
-            if(found) {
-                log.info("Radio Resource " + radId + " already translated and correctly posted on Offer Catalog.");
-                return pair;
-            } else {
-                try {
-                    mappingInfoService.delete(radId);
-                } catch (NotExistingEntityException e) {
-                    log.info("Entry for " + radId + " that should exists in DB, not found.");
-                }
-
-                return translateAndPostRad(rappWrapper, radId);
-            }
-        } else
-            return translateAndPostRad(rappWrapper, radId);
     }
 
     public Pair<ResourceCandidate, ResourceSpecification>
