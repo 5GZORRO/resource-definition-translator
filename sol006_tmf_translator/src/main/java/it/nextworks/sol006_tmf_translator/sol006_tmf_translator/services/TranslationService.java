@@ -634,7 +634,7 @@ public class TranslationService {
     }
 
     public Pair<ResourceCandidate, ResourceSpecification> translateAndPostSpc(TranslatorRAPPInteractionService.RAPPWrapper rappWrapper, String spcId)
-            throws IOException, CatalogException, MalformattedElementException {
+            throws IOException, CatalogException, MalformattedElementException, NotExistingEntityException {
 
         Pair<String, String> geographicAddressRef = getGeographicAddressOrCreate(rappWrapper.getGeographicAddressCreate());
         ResourceSpecificationCreate resourceSpecificationCreate = rappWrapper.getResourceSpecificationCreate();
@@ -642,6 +642,21 @@ public class TranslationService {
                 .name("Geographic Address")
                 .id(geographicAddressRef.getFirst())
                 .href(geographicAddressRef.getSecond())));
+
+        IdVsbNameMapping idVsbNameMapping = idVsbNameMappingService.getById(spcId);
+        ResourceSpecCharacteristic rscVsbName = new ResourceSpecCharacteristic()
+                .description("Name of the Vertical Service Blueprint.")
+                .name("vsbName")
+                .resourceSpecCharacteristicValue(Collections.singletonList(new ResourceSpecCharacteristicValue()
+                        .value(new Any().alias("vsbName").value(idVsbNameMapping.getVsbName()))));
+        resourceSpecificationCreate.getResourceSpecCharacteristic().add(rscVsbName);
+
+        ResourceSpecCharacteristic rscSnfvoUrl = new ResourceSpecCharacteristic()
+                .description("snfvoUrl")
+                .name("snfvoUrl")
+                .resourceSpecCharacteristicValue(Collections.singletonList(new ResourceSpecCharacteristicValue()
+                        .value(new Any().alias("snfvoUrl").value(idVsbNameMapping.getSnfvoUrl()))));
+        resourceSpecificationCreate.getResourceSpecCharacteristic().add(rscSnfvoUrl);
 
         log.info("Posting Resource Specification to Offer Catalog for spectrum resource " + spcId + ".");
 
@@ -669,42 +684,6 @@ public class TranslationService {
         return new Pair<>(rc, rs);
     }
 
-    public Pair<ResourceCandidate, ResourceSpecification> translateSpc(TranslatorRAPPInteractionService.RAPPWrapper rappWrapper, String spcId)
-            throws IOException, CatalogException, MalformattedElementException {
-
-        boolean found = true;
-        MappingInfo mappingInfo = null;
-        try {
-            mappingInfo = mappingInfoService.get(spcId);
-        } catch (NotExistingEntityException e) {
-            found = false;
-        }
-
-        if(found) {
-            Pair<ResourceCandidate, ResourceSpecification> pair = null;
-            try {
-                pair = translatorCatalogInteractionService
-                        .isResourcePresent(mappingInfo.getCandidateCatalogId(), mappingInfo.getSpecificationCatalogId());
-            } catch (MissingEntityOnCatalogException | ResourceMismatchException e) {
-                found = false;
-            }
-
-            if(found) {
-                log.info("Spectrum Resource " + spcId + " already translated and correctly posted on Offer Catalog.");
-                return pair;
-            } else {
-                try {
-                    mappingInfoService.delete(spcId);
-                } catch (NotExistingEntityException e) {
-                    log.info("Entry for " + spcId + " that should exists in DB, not found.");
-                }
-
-                return translateAndPostSpc(rappWrapper, spcId);
-            }
-        } else
-            return translateAndPostSpc(rappWrapper, spcId);
-    }
-
     public Pair<ResourceCandidate, ResourceSpecification>
     translateAndPostRad(TranslatorRAPPInteractionService.RAPPWrapper rappWrapper, String radId, String sliceTypeId)
             throws IOException, CatalogException, MalformattedElementException, NotExistingEntityException {
@@ -723,6 +702,13 @@ public class TranslationService {
                 .resourceSpecCharacteristicValue(Collections.singletonList(new ResourceSpecCharacteristicValue()
                         .value(new Any().alias("vsbName").value(idVsbNameMapping.getVsbName()))));
         resourceSpecificationCreate.getResourceSpecCharacteristic().add(rscVsbName);
+
+        ResourceSpecCharacteristic rscSnfvoUrl = new ResourceSpecCharacteristic()
+                .description("snfvoUrl")
+                .name("snfvoUrl")
+                .resourceSpecCharacteristicValue(Collections.singletonList(new ResourceSpecCharacteristicValue()
+                        .value(new Any().alias("snfvoUrl").value(idVsbNameMapping.getSnfvoUrl()))));
+        resourceSpecificationCreate.getResourceSpecCharacteristic().add(rscSnfvoUrl);
 
         log.info("Posting Resource Specification to Offer Catalog for radio resource " + radId + ".");
 

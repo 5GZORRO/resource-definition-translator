@@ -7,10 +7,7 @@ import io.swagger.annotations.ApiResponses;
 import it.nextworks.sol006_tmf_translator.information_models.commons.Pair;
 import it.nextworks.sol006_tmf_translator.information_models.commons.enums.Kind;
 import it.nextworks.sol006_tmf_translator.interfaces.SpectrumTranslatorInterface;
-import it.nextworks.sol006_tmf_translator.sol006_tmf_translator.commons.exception.CatalogException;
-import it.nextworks.sol006_tmf_translator.sol006_tmf_translator.commons.exception.MalformattedElementException;
-import it.nextworks.sol006_tmf_translator.sol006_tmf_translator.commons.exception.MissingEntityOnSourceException;
-import it.nextworks.sol006_tmf_translator.sol006_tmf_translator.commons.exception.SourceException;
+import it.nextworks.sol006_tmf_translator.sol006_tmf_translator.commons.exception.*;
 import it.nextworks.sol006_tmf_translator.sol006_tmf_translator.services.TranslationService;
 import it.nextworks.sol006_tmf_translator.sol006_tmf_translator.services.TranslatorRAPPInteractionService;
 import it.nextworks.tmf_offering_catalog.information_models.resource.ResourceCandidate;
@@ -77,8 +74,8 @@ public class SpectrumTranslatorController implements SpectrumTranslatorInterface
 
         Pair<ResourceCandidate, ResourceSpecification> translation;
         try {
-            translation = translationService.translateSpc(rappWrapper, spcId);
-        } catch (IOException | CatalogException e) {
+            translation = translationService.translateAndPostSpc(rappWrapper, spcId);
+        } catch (IOException | CatalogException | NotExistingEntityException e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new ErrMsg(e.getMessage()));
         } catch (MalformattedElementException e) {
             String msg = e.getMessage();
