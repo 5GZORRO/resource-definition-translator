@@ -234,12 +234,15 @@ public class TranslatorEngine {
                         .value(new Any().alias("vsbName").value(idVsbNameMapping.getVsbName()))));
         resourceSpecCharacteristics.add(rscVsbName);
 
-        ResourceSpecCharacteristic rscSnfvoUrl = new ResourceSpecCharacteristic()
-                .description("snfvoUrl")
-                .name("snfvoUrl")
-                .resourceSpecCharacteristicValue(Collections.singletonList(new ResourceSpecCharacteristicValue()
-                        .value(new Any().alias("snfvoUrl").value(idVsbNameMapping.getSnfvoUrl()))));
-        resourceSpecCharacteristics.add(rscSnfvoUrl);
+        String snfvoUrl = idVsbNameMapping.getSnfvoUrl();
+        if(snfvoUrl != null && !snfvoUrl.isEmpty()) {
+            ResourceSpecCharacteristic rscSnfvoUrl = new ResourceSpecCharacteristic()
+                    .description("snfvoUrl")
+                    .name("snfvoUrl")
+                    .resourceSpecCharacteristicValue(Collections.singletonList(new ResourceSpecCharacteristicValue()
+                            .value(new Any().alias("snfvoUrl").value(snfvoUrl))));
+            resourceSpecCharacteristics.add(rscSnfvoUrl);
+        }
 
         resourceSpecCharacteristics.addAll(computeVnfRequirements(vnfd));
 
@@ -920,12 +923,15 @@ public class TranslatorEngine {
                         .value(new Any().alias("vsbName").value(idVsbNameMapping.getVsbName()))));
         serviceSpecCharacteristics.add(rscVsbName);
 
-        ServiceSpecCharacteristic sscSnfvoUrl = new ServiceSpecCharacteristic()
-                .description("snfvoUrl")
-                .name("snfvoUrl")
-                .serviceSpecCharacteristicValue(Collections.singletonList(new ServiceSpecCharacteristicValue()
-                        .value(new Any().alias("snfvoUrl").value(idVsbNameMapping.getSnfvoUrl()))));
-        serviceSpecCharacteristics.add(sscSnfvoUrl);
+        String snfvoUrl = idVsbNameMapping.getSnfvoUrl();
+        if(snfvoUrl != null && !snfvoUrl.isEmpty()) {
+            ServiceSpecCharacteristic sscSnfvoUrl = new ServiceSpecCharacteristic()
+                    .description("snfvoUrl")
+                    .name("snfvoUrl")
+                    .serviceSpecCharacteristicValue(Collections.singletonList(new ServiceSpecCharacteristicValue()
+                            .value(new Any().alias("snfvoUrl").value(snfvoUrl))));
+            serviceSpecCharacteristics.add(sscSnfvoUrl);
+        }
 
         serviceSpecCharacteristics.addAll(computeNsRequirements(vnfResourceSpecifications, nsServiceSpecifications));
 
@@ -1023,12 +1029,15 @@ public class TranslatorEngine {
                         .value(new Any().alias("vsbName").value(idVsbNameMapping.getVsbName()))));
         resourceSpecCharacteristics.add(rscVsbName);
 
-        ResourceSpecCharacteristic rscSnfvoUrl = new ResourceSpecCharacteristic()
-                .description("snfvoUrl")
-                .name("snfvoUrl")
-                .resourceSpecCharacteristicValue(Collections.singletonList(new ResourceSpecCharacteristicValue()
-                        .value(new Any().alias("snfvoUrl").value(idVsbNameMapping.getSnfvoUrl()))));
-        resourceSpecCharacteristics.add(rscSnfvoUrl);
+        String snfvoUrl = idVsbNameMapping.getSnfvoUrl();
+        if(snfvoUrl != null && !snfvoUrl.isEmpty()) {
+            ResourceSpecCharacteristic rscSnfvoUrl = new ResourceSpecCharacteristic()
+                    .description("snfvoUrl")
+                    .name("snfvoUrl")
+                    .resourceSpecCharacteristicValue(Collections.singletonList(new ResourceSpecCharacteristicValue()
+                            .value(new Any().alias("snfvoUrl").value(snfvoUrl))));
+            resourceSpecCharacteristics.add(rscSnfvoUrl);
+        }
 
         TranslatorSliceManagerInteractionService.ComputeChunk computeChunk = sliceBlueprint.getComputeChunks().get(0);
         TranslatorSliceManagerInteractionService.ComputeChunkRequirements computeChunkRequirements =
@@ -1123,12 +1132,15 @@ public class TranslatorEngine {
                         .value(new Any().alias("vsbName").value(idVsbNameMapping.getVsbName()))));
         resourceSpecCharacteristics.add(rscVsbName);
 
-        ResourceSpecCharacteristic rscSnfvoUrl = new ResourceSpecCharacteristic()
-                .description("snfvoUrl")
-                .name("snfvoUrl")
-                .resourceSpecCharacteristicValue(Collections.singletonList(new ResourceSpecCharacteristicValue()
-                        .value(new Any().alias("snfvoUrl").value(idVsbNameMapping.getSnfvoUrl()))));
-        resourceSpecCharacteristics.add(rscSnfvoUrl);
+        String snfvoUrl = idVsbNameMapping.getSnfvoUrl();
+        if(snfvoUrl != null && !snfvoUrl.isEmpty()) {
+            ResourceSpecCharacteristic rscSnfvoUrl = new ResourceSpecCharacteristic()
+                    .description("snfvoUrl")
+                    .name("snfvoUrl")
+                    .resourceSpecCharacteristicValue(Collections.singletonList(new ResourceSpecCharacteristicValue()
+                            .value(new Any().alias("snfvoUrl").value(snfvoUrl))));
+            resourceSpecCharacteristics.add(rscSnfvoUrl);
+        }
 
         TranslatorSliceManagerInteractionService.ComputeChunk computeChunk = sliceBlueprint.getComputeChunks().get(0);
         TranslatorSliceManagerInteractionService.ComputeChunkRequirements computeChunkRequirements =
@@ -1220,12 +1232,15 @@ public class TranslatorEngine {
                         .value(new Any().alias("vsbName").value(idVsbNameMapping.getVsbName()))));
         serviceSpecCharacteristics.add(sscVsbName);
 
-        ServiceSpecCharacteristic sscSnfvoUrl = new ServiceSpecCharacteristic()
-                .description("snfvoUrl")
-                .name("snfvoUrl")
-                .serviceSpecCharacteristicValue(Collections.singletonList(new ServiceSpecCharacteristicValue()
-                        .value(new Any().alias("snfvoUrl").value(idVsbNameMapping.getSnfvoUrl()))));
-        serviceSpecCharacteristics.add(sscSnfvoUrl);
+        String snfvoUrl = idVsbNameMapping.getSnfvoUrl();
+        if(snfvoUrl != null && !snfvoUrl.isEmpty()) {
+            ServiceSpecCharacteristic sscSnfvoUrl = new ServiceSpecCharacteristic()
+                    .description("snfvoUrl")
+                    .name("snfvoUrl")
+                    .serviceSpecCharacteristicValue(Collections.singletonList(new ServiceSpecCharacteristicValue()
+                            .value(new Any().alias("snfvoUrl").value(snfvoUrl))));
+            serviceSpecCharacteristics.add(sscSnfvoUrl);
+        }
 
         List<TranslatorSliceManagerInteractionService.Attribute> attributes = sliceType.getAttributes();
 

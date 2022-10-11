@@ -651,12 +651,15 @@ public class TranslationService {
                         .value(new Any().alias("vsbName").value(idVsbNameMapping.getVsbName()))));
         resourceSpecificationCreate.getResourceSpecCharacteristic().add(rscVsbName);
 
-        ResourceSpecCharacteristic rscSnfvoUrl = new ResourceSpecCharacteristic()
-                .description("snfvoUrl")
-                .name("snfvoUrl")
-                .resourceSpecCharacteristicValue(Collections.singletonList(new ResourceSpecCharacteristicValue()
-                        .value(new Any().alias("snfvoUrl").value(idVsbNameMapping.getSnfvoUrl()))));
-        resourceSpecificationCreate.getResourceSpecCharacteristic().add(rscSnfvoUrl);
+        String snfvoUrl = idVsbNameMapping.getSnfvoUrl();
+        if(snfvoUrl != null && !snfvoUrl.isEmpty()) {
+            ResourceSpecCharacteristic rscSnfvoUrl = new ResourceSpecCharacteristic()
+                    .description("snfvoUrl")
+                    .name("snfvoUrl")
+                    .resourceSpecCharacteristicValue(Collections.singletonList(new ResourceSpecCharacteristicValue()
+                            .value(new Any().alias("snfvoUrl").value(snfvoUrl))));
+            resourceSpecificationCreate.getResourceSpecCharacteristic().add(rscSnfvoUrl);
+        }
 
         log.info("Posting Resource Specification to Offer Catalog for spectrum resource " + spcId + ".");
 
@@ -703,12 +706,15 @@ public class TranslationService {
                         .value(new Any().alias("vsbName").value(idVsbNameMapping.getVsbName()))));
         resourceSpecificationCreate.getResourceSpecCharacteristic().add(rscVsbName);
 
-        ResourceSpecCharacteristic rscSnfvoUrl = new ResourceSpecCharacteristic()
-                .description("snfvoUrl")
-                .name("snfvoUrl")
-                .resourceSpecCharacteristicValue(Collections.singletonList(new ResourceSpecCharacteristicValue()
-                        .value(new Any().alias("snfvoUrl").value(idVsbNameMapping.getSnfvoUrl()))));
-        resourceSpecificationCreate.getResourceSpecCharacteristic().add(rscSnfvoUrl);
+        String snfvoUrl = idVsbNameMapping.getSnfvoUrl();
+        if(snfvoUrl != null && !snfvoUrl.isEmpty()) {
+            ResourceSpecCharacteristic rscSnfvoUrl = new ResourceSpecCharacteristic()
+                    .description("snfvoUrl")
+                    .name("snfvoUrl")
+                    .resourceSpecCharacteristicValue(Collections.singletonList(new ResourceSpecCharacteristicValue()
+                            .value(new Any().alias("snfvoUrl").value(snfvoUrl))));
+            resourceSpecificationCreate.getResourceSpecCharacteristic().add(rscSnfvoUrl);
+        }
 
         log.info("Posting Resource Specification to Offer Catalog for radio resource " + radId + ".");
 
